@@ -15,7 +15,7 @@ class QuickPoll
       help_command: false,
       webhook_commands: false,
       ignore_bots: true,
-      # log_mode: :silent
+      log_mode: :silent
     )
 
     @bot.ready { @bot.game = "#{@bot.prefix}poll" }
