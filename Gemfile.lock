@@ -1,0 +1,60 @@
+GIT
+  remote: https://github.com/discordrb/discordrb
+  revision: 2c2b50e32c055aa8288b34644346a10696d5efa1
+  ref: 2c2b50e
+  specs:
+    discordrb (3.3.0)
+      discordrb-webhooks (~> 3.3.0)
+      ffi (>= 1.9.24)
+      opus-ruby
+      rest-client (>= 2.0.0)
+      websocket-client-simple (>= 0.3.0)
+    discordrb-webhooks (3.3.0)
+      rest-client (>= 2.1.0.rc1)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    domain_name (0.5.20190701)
+      unf (>= 0.0.5, < 1.0.0)
+    dotenv (2.7.5)
+    event_emitter (0.2.6)
+    ffi (1.11.3-x64-mingw32)
+    http-accept (1.7.0)
+    http-cookie (1.0.3)
+      domain_name (~> 0.5)
+    mime-types (3.3)
+      mime-types-data (~> 3.2015)
+    mime-types-data (3.2019.1009)
+    mini_portile2 (2.4.0)
+    netrc (0.11.0)
+    nokogiri (1.10.7-x64-mingw32)
+      mini_portile2 (~> 2.4.0)
+    opus-ruby (1.0.1)
+      ffi
+    rest-client (2.1.0-x64-mingw32)
+      ffi (~> 1.9)
+      http-accept (>= 1.7.0, < 2.0)
+      http-cookie (>= 1.0.2, < 2.0)
+      mime-types (>= 1.16, < 4.0)
+      netrc (~> 0.8)
+    twemoji (3.1.5)
+      nokogiri (~> 1.6)
+    unf (0.1.4)
+      unf_ext
+    unf_ext (0.0.7.6)
+    websocket (1.2.8)
+    websocket-client-simple (0.3.0)
+      event_emitter
+      websocket
+
+PLATFORMS
+  x64-mingw32
+
+DEPENDENCIES
+  discordrb!
+  dotenv
+  twemoji
+
+BUNDLED WITH
+   2.0.2
