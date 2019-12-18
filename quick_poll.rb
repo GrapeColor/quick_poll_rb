@@ -146,15 +146,15 @@ class QuickPoll
       [emoji, reaction.count - 1]
     end.to_h
     polls_max = [polls.values.max, 1].max
-    polls_sum = polls.values.inject(:+)
+    polls_sum = [polls.values.inject(:+), 1].max
 
     # フィールドの文字列生成
     results = options.map do |option|
       count = polls[option[:emoji]]
       if count == polls_max
-        "**#{count}票 (#{(count / polls_max) * 100}%)** 🏆"
+        "**#{count}票 (#{100.0 * count / polls_sum}%)** 🏆"
       else
-        "#{count}票 (#{(count / polls_max) * 100}%)"
+        "#{count}票 (#{100.0 * count / polls_sum}%)"
       end
     end
 
@@ -263,18 +263,18 @@ DESC
   # 先頭何文字分が絵文字か
   def start_with_emoji(content)
     emoji = ""
-    max = [content.length, 8].max - 1
+    max = [content.length, 8].max
 
     # カスタム絵文字
     content =~ /^<:.+:\d+>/
     return $& if $& && @bot.parse_mention($&).respond_to?(:to_reaction)
 
     # デフォルト絵文字
-    (0..max).each do |index|
+    (0...max).each do |index|
       end_index = max - index
-      if Twemoji.find_by(unicode: content[0..end_index])
-        emoji = content[0..end_index]
-        emoji += content[end_index + 1] if content[end_index + 1] == "\uFE0F" # 字形選択子を含める
+      if Twemoji.find_by(unicode: content[0...end_index])
+        emoji = content[0...end_index]
+        emoji += content[end_index] if content[end_index] == "\uFE0F" # 字形選択子を含める
         break
       end
     end
