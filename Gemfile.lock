@@ -26,10 +26,7 @@ GEM
     mime-types (3.3)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2019.1009)
-    mini_portile2 (2.4.0)
     netrc (0.11.0)
-    nokogiri (1.10.7-x64-mingw32)
-      mini_portile2 (~> 2.4.0)
     opus-ruby (1.0.1)
       ffi
     rest-client (2.1.0-x64-mingw32)
@@ -38,8 +35,6 @@ GEM
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
-    twemoji (3.1.5)
-      nokogiri (~> 1.6)
     unf (0.1.4)
       unf_ext
     unf_ext (0.0.7.6)
@@ -54,7 +49,6 @@ PLATFORMS
 DEPENDENCIES
   discordrb!
   dotenv
-  twemoji
 
 BUNDLED WITH
    2.0.2
