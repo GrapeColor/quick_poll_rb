@@ -179,7 +179,7 @@ class QuickPoll
         icon_url: q_embed.author.icon_url,
         name: q_embed.author.name
       )
-      embed.title = "🅰\uFE0F #{question}"
+      embed.title = "🅰️ #{question}"
 
       inline = polls.length > 7
       polls.each_with_index do |poll, i|
@@ -204,8 +204,7 @@ class QuickPoll
 選択肢は0～20個指定でき、選択肢の先頭に絵文字を使うと、その絵文字が選択肢になります。
 
 質問文・選択肢の区切りは **半角スペース** か **改行** です。
-質問文・選択肢に半角スペースを含めたい場合は **`"`** か **`'`** で囲ってください。
-**`"`** や **`'`** は **`\\`** でエスケープできます。
+質問文・選択肢に半角スペースを含めたい場合は **`"`** で囲ってください。
 
 例：（どちらも同じ結果になります）
 ```
@@ -218,6 +217,7 @@ class QuickPoll
 味噌
 塩
 ```
+[詳しい使用方法](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
 DESC
     end
   end
@@ -226,7 +226,7 @@ DESC
   def parse_args(content)
     args = []
     arg = ""
-    quote = ""
+    quote = false
     escape = false
 
     # 引数追加手続き
@@ -237,36 +237,28 @@ DESC
 
     content.chars.each.with_index(1) do |char, i|
       # クォート
-      if char =~ /["']/ && !escape
-        if quote.empty?
-          quote = char
-          add_arg.call
-          next
-        end
-
-        if quote == char
-          quote = ""
-          add_arg.call
-          next
-        end
+      if char == '"' && !escape
+        quote = !quote
+        add_arg.call
+        next
       end
 
       # クォートのエスケープ
-      if content[i] && char + content[i] =~ /\\["']/
+      if char == '\\' && content[i] == '"'
         escape = true
         next
       end
       escape = false if escape
 
       # 引数の区切り(半角スペース)
-      if char == " " && quote.empty?
+      if char == " " && !quote
         add_arg.call
         next
       end
 
       # 改行
       if char == "\n"
-        quote = ""
+        quote = false
         add_arg.call
         next
       end
