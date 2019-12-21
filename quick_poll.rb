@@ -1,7 +1,6 @@
 require 'bundler/setup'
 require 'discordrb'
 require 'yaml'
-require 'parallel'
 
 class QuickPoll
   DEFAULT_EMOJIS = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹"]
@@ -248,21 +247,13 @@ DESC
     message = event.message
     return if message.embeds.first.footer.text.empty?
 
-    reactions = message.reactions
-    Parallel.each(0...reactions.length) do |i|
-      next if event.emoji.to_reaction == reactions[i].to_s
-      users = message.reacted_with(reactions[i].to_s, limit: reactions[i].count)
+    message.reactions.each do |reaction|
+      users = message.reacted_with(reaction.to_s, limit: reaction.count)
       user = users.find { |user| user.id == event.user.id }
-      message.delete_reaction(user, reactions[i].to_s) if user
+      if user && event.emoji.to_reaction != reaction.to_s
+        message.delete_reaction(user, reaction.to_s)
+      end
     end
-
-    # message.reactions.each do |reaction|
-    #   users = message.reacted_with(reaction.to_s, limit: reaction.count)
-    #   user = users.find { |user| user.id == event.user.id }
-    #   if user && event.emoji.to_reaction != reaction.to_s
-    #     message.delete_reaction(user, reaction.to_s)
-    #   end
-    # end
   end
 
   # 引数の分解
