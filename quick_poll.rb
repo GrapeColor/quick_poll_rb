@@ -146,7 +146,7 @@ class QuickPoll
       icon_url: event.author.avatar_url,
       name: display_name
     )
-    embed.title = "🇶 #{question}"
+    embed.title = "🇶 #{question}\u200c"
     embed.description = ""
     args.each_with_index do |arg, i|
       embed.description += "#{emojis[i]} #{arg}\n" unless arg.empty?
@@ -217,7 +217,7 @@ class QuickPoll
         icon_url: q_embed.author.icon_url,
         name: q_embed.author.name
       )
-      embed.title = "🅰️ #{question}"
+      embed.title = "🅰️ #{question}\u200c"
 
       inline = polls.length > 7
       polls.each_with_index do |poll, i|

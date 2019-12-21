@@ -60,4 +60,4 @@
 
 ## 導入方法
 次のリンクからご自身のサーバーに導入できます。  
-https://discordapp.com/api/oauth2/authorize?client_id=631159438337900575&permissions=85056&scope=bot  
+https://discordapp.com/api/oauth2/authorize?client_id=631159438337900575&permissions=93248&scope=bot  
