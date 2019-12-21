@@ -18,7 +18,7 @@ class QuickPoll
       help_command: false,
       webhook_commands: false,
       ignore_bots: true,
-      # log_mode: :silent
+      log_mode: :silent
     )
 
     @bot.ready { @bot.game = "#{@bot.prefix}poll" }
@@ -26,7 +26,7 @@ class QuickPoll
     @bot.bucket(:poll_limit, limit: 1, time_span: 5)
 
     @command_attrs = {
-      rate_limit_message: "コマンドは **%time%秒後** に使用できます",
+      rate_limit_message: "⚠️ コマンドは **%time%秒後** に再び使用できます",
       bucket: :poll_limit
     }
 
@@ -51,12 +51,26 @@ class QuickPoll
 
     # 排他的投票コマンド
     @bot.command(:expoll, @command_attrs) do |event, *args|
+      # ヘルプ表示
+      if args.empty?
+        show_help(event)
+        next nil
+      end
+
+      # 投票を表示
       show_question(event)
       nil
     end
 
     # 自由選択肢投票コマンド
     @bot.command(:freepoll, @command_attrs) do |event, arg|
+      # ヘルプ表示
+      if arg.nil?
+        show_help(event)
+        next nil
+      end
+
+      # 投票を表示
       show_question(event)
       nil
     end
@@ -82,7 +96,7 @@ class QuickPoll
     command = args.shift  # コマンド部
     question = args.shift # 質問文
     if args.length > 20
-      event.send_message("⚠ **選択肢は最大20個までです**")
+      event.send_message("⚠️ **選択肢は最大20個までです**")
       return
     end
 
@@ -103,7 +117,7 @@ class QuickPoll
 
         # 絵文字の重複確認
         if emojis.length - emojis.uniq.length > 0
-          event.send_message("⚠ **選択肢の絵文字が重複しています**")
+          event.send_message("⚠️ **選択肢の絵文字が重複しています**")
           return
         end
 
@@ -116,7 +130,7 @@ class QuickPoll
     end
 
     # メッセージを仮送信
-    message = event.send_message("メッセージ生成中...")
+    message = event.send_message("⌛ メッセージ生成中...")
 
     # 投稿者名取得
     if event.author.respond_to?(:display_name)
@@ -235,7 +249,7 @@ class QuickPoll
 使用方法は `#{@bot.prefix}poll` と同様です。
 
 **`#{@bot.prefix}freepoll [質問文]`**
-選択肢を作らず、メンバーが付けたリアクションの数を集計する投票を作ります。
+選択肢を作らず、メンバーが任意で付けたリアクションの数を集計する投票を作ります。
 
 [詳しい使用方法](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
 DESC
@@ -248,11 +262,8 @@ DESC
     return if message.embeds.first.footer.text.empty?
 
     message.reactions.each do |reaction|
-      users = message.reacted_with(reaction.to_s, limit: reaction.count)
-      user = users.find { |user| user.id == event.user.id }
-      if user && event.emoji.to_reaction != reaction.to_s
-        message.delete_reaction(user, reaction.to_s)
-      end
+      next if event.emoji.to_reaction == reaction.to_s
+      message.delete_reaction(event.user, reaction.to_s)
     end
   end
 
