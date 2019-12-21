@@ -1,6 +1,7 @@
 require 'bundler/setup'
 require 'discordrb'
 require 'yaml'
+require 'parallel'
 
 class QuickPoll
   DEFAULT_EMOJIS = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹"]
@@ -18,7 +19,7 @@ class QuickPoll
       help_command: false,
       webhook_commands: false,
       ignore_bots: true,
-      log_mode: :silent
+      # log_mode: :silent
     )
 
     @bot.ready { @bot.game = "#{@bot.prefix}poll" }
@@ -30,6 +31,7 @@ class QuickPoll
       bucket: :poll_limit
     }
 
+    # 通常の投票コマンド
     @bot.command(:poll, @command_attrs) do |event, *args|
       # ヘルプ表示
       if args.empty?
@@ -43,8 +45,26 @@ class QuickPoll
         next nil
       end
 
-      # 質問を表示
+      # 投票を表示
       show_question(event)
+      nil
+    end
+
+    # 排他的投票コマンド
+    @bot.command(:expoll, @command_attrs) do |event, *args|
+      show_question(event)
+      nil
+    end
+
+    # 自由選択肢投票コマンド
+    @bot.command(:freepoll, @command_attrs) do |event, arg|
+      show_question(event)
+      nil
+    end
+
+    # リアクションイベント
+    @bot.reaction_add do |event|
+      exclusive_reaction(event)
       nil
     end
   end
@@ -56,11 +76,11 @@ class QuickPoll
 
   private
 
-  # 質問を表示
+  # 投票を表示
   def show_question(event)
     # 引数を分解
     args = parse_args(event.content)
-    args.shift  # コマンド部を削除
+    command = args.shift  # コマンド部
     question = args.shift # 質問文
     if args.length > 20
       event.send_message("⚠ **選択肢は最大20個までです**")
@@ -70,7 +90,7 @@ class QuickPoll
     # 選択肢の絵文字を生成
     if args.empty?
       # 質問文のみ
-      emojis = "⭕", "❌"
+      command == "#{@bot.prefix}freepoll" ? emojis = [] : emojis = ["⭕", "❌"]
     else
       # 先頭絵文字を抽出
       emojis = args.map { |arg| start_with_emoji(arg) }
@@ -119,6 +139,9 @@ class QuickPoll
       embed.description += "#{emojis[i]} #{arg}\n" unless arg.empty?
     end
     embed.description += "\n投票結果は `#{@bot.prefix}poll #{message.id}` で表示できます。"
+    embed.footer = Discordrb::Webhooks::EmbedFooter.new(
+      text: "1人1つの選択肢だけ選べます"
+    ) if command == "#{@bot.prefix}expoll"
 
     # 埋め込みの表示とリアクションの生成
     message.edit("", embed)
@@ -143,9 +166,11 @@ class QuickPoll
 
     # 集計
     reactions = message.my_reactions
+    reactions = message.reactions if reactions.empty?
     polls = reactions.map do |reaction|
       emoji = reaction.to_s
       emoji = "<:#{emoji}>" if emoji =~ /.+:\d+/
+      next [emoji, reaction.count] unless reaction.me
       [emoji, reaction.count - 1]
     end.to_h
     polls_max = [polls.values.max, 1].max
@@ -200,26 +225,44 @@ class QuickPoll
       embed.title = "Quick Pollの使い方"
       embed.description = <<DESC
 **`#{@bot.prefix}poll [質問文] [選択肢1] [選択肢2] [選択肢3]...`**
-コマンドの後に質問文・選択肢を入力すると、それを元に投票用のメッセージを生成します。
-選択肢は0～20個指定でき、選択肢の先頭に絵文字を使うと、その絵文字が選択肢になります。
+コマンドの後に質問文・選択肢を入力すると、それを元に投票を作ります。
+選択肢は0～20個指定でき、すべての選択肢の先頭に絵文字を使うと、その絵文字が選択肢になります。
 
 質問文・選択肢の区切りは **半角スペース** か **改行** です。
 質問文・選択肢に半角スペースを含めたい場合は **`"`** で囲ってください。
 
-例：（どちらも同じ結果になります）
-```
-#{@bot.prefix}poll 好きなラーメンの味は？ 醤油 豚骨 味噌 塩
+**`#{@bot.prefix}expoll [質問文] [選択肢1] [選択肢2] [選択肢3]...`**
+選択肢を1つしか選べない投票を作ります。
+使用方法は `#{@bot.prefix}poll` と同様です。
 
-#{@bot.prefix}poll
-好きなラーメンの味は？
-醤油
-豚骨
-味噌
-塩
-```
+**`#{@bot.prefix}freepoll [質問文]`**
+選択肢を作らず、メンバーが付けたリアクションの数を集計する投票を作ります。
+
 [詳しい使用方法](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
 DESC
     end
+  end
+
+  # 排他リアクション処理
+  def exclusive_reaction(event)
+    message = event.message
+    return if message.embeds.first.footer.text.empty?
+
+    reactions = message.reactions
+    Parallel.each(0...reactions.length) do |i|
+      next if event.emoji.to_reaction == reactions[i].to_s
+      users = message.reacted_with(reactions[i].to_s, limit: reactions[i].count)
+      user = users.find { |user| user.id == event.user.id }
+      message.delete_reaction(user, reactions[i].to_s) if user
+    end
+
+    # message.reactions.each do |reaction|
+    #   users = message.reacted_with(reaction.to_s, limit: reaction.count)
+    #   user = users.find { |user| user.id == event.user.id }
+    #   if user && event.emoji.to_reaction != reaction.to_s
+    #     message.delete_reaction(user, reaction.to_s)
+    #   end
+    # end
   end
 
   # 引数の分解
