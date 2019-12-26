@@ -2,14 +2,22 @@ require 'bundler/setup'
 require 'discordrb'
 require 'yaml'
 
+class String
+  EMOJI_FILE = File.expand_path('../emoji_list.yml', __FILE__)
+  EMOJI_LIST = File.open(EMOJI_FILE, 'r') { |f| YAML.load(f) }
+
+  # レシーバが絵文字か
+  def emoji?
+    return true if self =~ /^<:.+:\d+>$/
+    EMOJI_LIST.include?(self.delete("\uFE0F"))
+  end
+end
+
 class QuickPoll
   DEFAULT_EMOJIS = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹"]
   COLOR_QUESTION = 0x3b88c3
   COLOR_ANSWER   = 0xdd2e44
   COLOR_HELP     = 0x77b255
-
-  EMOJI_FILE = File.expand_path('../emoji_list.yml', __FILE__)
-  EMOJI_LIST = File.open(EMOJI_FILE, 'r') { |f| YAML.load(f) }
 
   def initialize(token)
     @bot = Discordrb::Commands::CommandBot.new(
@@ -18,20 +26,20 @@ class QuickPoll
       help_command: false,
       webhook_commands: false,
       ignore_bots: true,
-      log_mode: :silent
+      # log_mode: :silent
     )
 
     @bot.ready { @bot.game = "#{@bot.prefix}poll" }
 
     @bot.bucket(:poll_limit, limit: 1, time_span: 5)
 
-    @command_attrs = {
+    rate_limit = {
       rate_limit_message: "⚠️ コマンドは **%time%秒後** に再び使用できます",
       bucket: :poll_limit
     }
 
     # 通常の投票コマンド
-    @bot.command(:poll, @command_attrs) do |event, *args|
+    @bot.command(:poll, rate_limit) do |event, *args|
       # ヘルプ表示
       if args.empty?
         show_help(event)
@@ -45,12 +53,12 @@ class QuickPoll
       end
 
       # 投票を表示
-      show_question(event)
+      create_question(event)
       nil
     end
 
     # 排他的投票コマンド
-    @bot.command(:expoll, @command_attrs) do |event, *args|
+    @bot.command(:expoll, rate_limit) do |event, *args|
       # ヘルプ表示
       if args.empty?
         show_help(event)
@@ -58,12 +66,12 @@ class QuickPoll
       end
 
       # 投票を表示
-      show_question(event)
+      create_question(event)
       nil
     end
 
     # 自由選択肢投票コマンド
-    @bot.command(:freepoll, @command_attrs) do |event, arg|
+    @bot.command(:freepoll, rate_limit) do |event, arg|
       # ヘルプ表示
       if arg.nil?
         show_help(event)
@@ -71,7 +79,7 @@ class QuickPoll
       end
 
       # 投票を表示
-      show_question(event)
+      create_question(event, true)
       nil
     end
 
@@ -87,46 +95,83 @@ class QuickPoll
     @bot.run(async)
   end
 
+  def sync
+    @bot.sync
+  end
+
   private
 
+  # ヘルプ表示
+  def show_help(event)
+    event.send_embed do |embed|
+      embed.color = COLOR_HELP
+      embed.title = "Quick Poll の使い方"
+      embed.description = <<DESC
+**```#{@bot.prefix}poll 質問文 選択肢1 選択肢2 選択肢3...```**
+コマンドの後に質問文・選択肢を入力すると、それを元に投票を作ります。
+選択肢は0～20個指定でき、メンバーは「🇦 🇧 🇨...」の選択肢の中から回答することができます。
+選択肢が0個の場合は、メンバーに⭕と❌の中から選ばせる投票を作ります。
+
+**```#{@bot.prefix}poll 質問文 絵文字1 選択肢1 絵文字2 選択肢2 絵文字3 選択肢3...```**
+絵文字を選択肢の **前に** 入れると、指定された絵文字が選択肢として使えます。
+その場合はすべての選択肢に絵文字を指定する必要があります。
+
+質問文・絵文字・選択肢の区切りは **半角スペース** か **改行** です。
+質問文・選択肢に半角スペースを含めたい場合は **`"`** で囲ってください。
+
+**```#{@bot.prefix}expoll 質問文 選択肢1 選択肢2 選択肢3...```**
+選択肢を1つしか選べない投票を作ります。
+使用方法は `#{@bot.prefix}poll` と同様です。
+
+**```#{@bot.prefix}freepoll 質問文```**
+選択肢を作らず、メンバーが任意で付けたリアクションの数を集計する投票を作ります。
+
+[詳しい使用方法](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
+DESC
+    end
+  end
+
   # 投票を表示
-  def show_question(event)
+  def create_question(event, free = false)
     # 引数を分解
     args = parse_args(event.content)
-    command = args.shift  # コマンド部
-    question = args.shift # 質問文
-    if args.length > 20
-      event.send_message("⚠️ **選択肢は最大20個までです**")
-      return
-    end
+    command  = args.shift       # コマンド部
+    question = args.shift       # 質問文
 
-    # 選択肢の絵文字を生成
-    if args.empty?
-      # 質問文のみ
-      command == "#{@bot.prefix}freepoll" ? emojis = [] : emojis = ["⭕", "❌"]
-    else
-      # 先頭絵文字を抽出
-      emojis = args.map { |arg| start_with_emoji(arg) }
-      emoji_lengths = emojis.map { |emoji| emoji.length }
+    # 選択肢を生成
+    # 選択肢はあるか
+    if args.any?
+      # 引数が絵文字か判別
+      are_emoji = args.map(&:emoji?)
 
-      if emoji_lengths.min < 1
-        # 絵文字から始まらない選択肢がある場合
-        emojis = DEFAULT_EMOJIS[0...args.length]
+      # すべての引数が絵文字か
+      if are_emoji.all?
+        emojis  = args
+        options = []
       else
-        # 選択肢がすべて絵文字で始まる場合
-
-        # 絵文字の重複確認
-        if emojis.length - emojis.uniq.length > 0
-          event.send_message("⚠️ **選択肢の絵文字が重複しています**")
-          return
-        end
-
-        # 先頭の絵文字を削除
-        args.each_with_index do |arg, i|
-          arg.slice!(0...emoji_lengths[i])
-          arg.strip!
+        # 引数が絵文字と選択文のペアか
+        if are_emoji.each_slice(2).map { |i, j| i & !j }.all?
+          emojis, options = args.partition.with_index { |_, i| i.even? }
+        else
+          emojis  = DEFAULT_EMOJIS[0...args.length]
+          options = args
         end
       end
+
+      # 選択肢数を確認
+      if emojis.length > 20 || options.length > 20
+        event.send_message("⚠️ **選択肢は最大20個までです**")
+        return
+      end
+
+      # 絵文字の重複確認
+      if emojis.length - emojis.uniq.length > 0
+        event.send_message("⚠️ **選択肢の絵文字が重複しています**")
+        return
+      end
+    else
+      emojis  = free ? [] : ["⭕", "❌"]
+      options = []
     end
 
     # メッセージを仮送信
@@ -134,9 +179,9 @@ class QuickPoll
 
     # 投稿者名取得
     if event.author.respond_to?(:display_name)
-      display_name = event.author.display_name
+      username = event.author.display_name
     else
-      display_name = event.author.username
+      username = event.author.username
     end
 
     # 埋め込み生成
@@ -144,12 +189,12 @@ class QuickPoll
     embed.color = COLOR_QUESTION
     embed.author = Discordrb::Webhooks::EmbedAuthor.new(
       icon_url: event.author.avatar_url,
-      name: display_name
+      name: username
     )
     embed.title = "🇶 #{question}\u200c"
     embed.description = ""
-    args.each_with_index do |arg, i|
-      embed.description += "#{emojis[i]} #{arg}\n" unless arg.empty?
+    options.each_with_index do |option, i|
+      embed.description += "#{emojis[i]} #{option}\n"
     end
     embed.description += "\n投票結果は `#{@bot.prefix}poll #{message.id}` で表示できます。"
     embed.footer = Discordrb::Webhooks::EmbedFooter.new(
@@ -173,7 +218,7 @@ class QuickPoll
     return if message.nil?
 
     # メッセージを検証
-    return if message.author.id != @bot.profile.id
+    return unless message.from_bot?
     q_embed = message.embeds.first
     return if q_embed.color != COLOR_QUESTION
 
@@ -194,7 +239,7 @@ class QuickPoll
     question = $1
     options = Hash.new("\u200c")  # ゼロ幅文字をデフォルト値に
     q_embed.description.lines do |line|
-      option = line.chomp
+      option = line.strip
       break if option.empty?
 
       option =~ /([^ ]+) (.+)/
@@ -219,6 +264,7 @@ class QuickPoll
       )
       embed.title = "🅰️ #{question}\u200c"
 
+      # 各選択肢の結果を挿入
       inline = polls.length > 7
       polls.each_with_index do |poll, i|
         emoji, count = poll
@@ -231,36 +277,12 @@ class QuickPoll
     end
   end
 
-  # ヘルプ表示
-  def show_help(event)
-    event.send_embed do |embed|
-      embed.color = COLOR_HELP
-      embed.title = "Quick Pollの使い方"
-      embed.description = <<DESC
-**`#{@bot.prefix}poll [質問文] [選択肢1] [選択肢2] [選択肢3]...`**
-コマンドの後に質問文・選択肢を入力すると、それを元に投票を作ります。
-選択肢は0～20個指定でき、すべての選択肢の先頭に絵文字を使うと、その絵文字が選択肢になります。
-
-質問文・選択肢の区切りは **半角スペース** か **改行** です。
-質問文・選択肢に半角スペースを含めたい場合は **`"`** で囲ってください。
-
-**`#{@bot.prefix}expoll [質問文] [選択肢1] [選択肢2] [選択肢3]...`**
-選択肢を1つしか選べない投票を作ります。
-使用方法は `#{@bot.prefix}poll` と同様です。
-
-**`#{@bot.prefix}freepoll [質問文]`**
-選択肢を作らず、メンバーが任意で付けたリアクションの数を集計する投票を作ります。
-
-[詳しい使用方法](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
-DESC
-    end
-  end
-
   # 排他リアクション処理
   def exclusive_reaction(event)
     message = event.message
-    return if message.embeds.first.footer.text.empty?
+    return if message.embeds.first.footer.nil?
 
+    # イベントを発生させたリアクション以外を削除
     message.reactions.each do |reaction|
       next if event.emoji.to_reaction == reaction.to_s
       message.delete_reaction(event.user, reaction.to_s)
@@ -276,7 +298,7 @@ DESC
 
     # 引数追加手続き
     add_arg = Proc.new {
-      args << arg unless arg.empty?
+      args << arg.strip unless arg.empty?
       arg = ""
     }
 
@@ -313,27 +335,5 @@ DESC
     add_arg.call
 
     args
-  end
-
-  # 先頭の絵文字を抽出
-  def start_with_emoji(content)
-    emoji = ""
-    max = [content.length, 8].min
-
-    # カスタム絵文字
-    content =~ /^<:.+:\d+>/
-    return $& if $& && @bot.parse_mention($&)
-
-    # デフォルト絵文字
-    (0...max).each do |index|
-      end_index = max - index
-      if EMOJI_LIST.include?(content[0...end_index])
-        emoji = content[0...end_index]
-        emoji += content[end_index] if content[end_index] == "\uFE0F" # 字形選択子を含める
-        break
-      end
-    end
-
-    emoji
   end
 end
