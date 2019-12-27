@@ -88,6 +88,18 @@ class QuickPoll
       exclusive_reaction(event)
       nil
     end
+
+    # デバッグコマンド
+    @bot.mention(in: ENV['ADMIN_CHANNEL_ID'].to_i, from: ENV['ADMIN_USER_ID'].to_i) do |event|
+      next if event.content !~ /^<@!?\d+> admin (.+)/
+
+      begin
+        value = eval($1)
+      rescue => exception
+        value = exception
+      end
+      event << "```\n#{value}\n```"
+    end
   end
 
   # BOT起動
