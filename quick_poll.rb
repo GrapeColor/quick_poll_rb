@@ -85,9 +85,20 @@ class QuickPoll
 
     # リアクションイベント
     @bot.reaction_add do |event|
-      exclusive_reaction(event)
+      if event.message.from_bot?
+        exclusive_reaction(event)
+      else
+        destroy_relate(event)
+      end
       nil
     end
+
+    # ハートビートで実行するメソッド
+    @bot.heartbeat do |event|
+      timeout_relate
+    end
+
+    @relate_messages = {}
 
     # デバッグコマンド
     @bot.mention(in: ENV['ADMIN_CHANNEL_ID'].to_i, from: ENV['ADMIN_USER_ID'].to_i) do |event|
@@ -113,9 +124,45 @@ class QuickPoll
 
   private
 
+  # コマンドとの関連付けを作成
+  def create_relate(event, message)
+    @relate_messages[event.message.id] = {
+      id: message.id,
+      channel_id: event.message.channel.id,
+      time: Time.now,
+    }
+    event.message.create_reaction("↩️")
+  end
+
+  # タイムアウトした関連付けを削除
+  def timeout_relate
+    now = Time.now
+    @relate_messages.reject! do |message_id, data|
+      if now - data[:time] > 60
+        begin
+          Discordrb::API::Channel.delete_own_reaction(@bot.token, data[:channel_id], message_id, "↩️")
+        rescue
+          nil
+        end
+        true
+      end
+    end
+  end
+
+  # コマンドとの関連付けを削除
+  def destroy_relate(event)
+    return if event.message.author.id != event.user.id
+    data = @relate_messages.delete(event.message.id)
+    if data
+      Discordrb::API::Channel.delete_message(@bot.token, data[:channel_id], data[:id])
+      Discordrb::API::Channel.delete_user_reaction(@bot.token, data[:channel_id], event.message.id, "↩️", event.user.id)
+      Discordrb::API::Channel.delete_own_reaction(@bot.token, data[:channel_id], event.message.id, "↩️")
+    end
+  end
+
   # ヘルプ表示
   def show_help(event)
-    event.send_embed do |embed|
+    message = event.send_embed do |embed|
       embed.color = COLOR_HELP
       embed.title = "Quick Poll の使い方"
       embed.description = <<DESC
@@ -138,9 +185,13 @@ class QuickPoll
 **```#{@bot.prefix}freepoll 質問文```**
 選択肢を作らず、メンバーが任意で付けたリアクションの数を集計する投票を作ります。
 
+コマンド実行後、60秒以内に↩️を押すとコマンドの実行を取り消すことができます。
+
 [詳しい使用方法](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
 DESC
     end
+
+    create_relate(event, message)
   end
 
   # 投票を表示
@@ -222,6 +273,8 @@ DESC
         message.create_reaction(emoji)
       end
     end
+
+    create_relate(event, message)
   end
 
   # 投票結果表示
@@ -268,7 +321,7 @@ DESC
     end
 
     # 埋め込み生成
-    event.send_embed do |embed|
+    message = event.send_embed do |embed|
       embed.color = COLOR_ANSWER
       embed.author = Discordrb::Webhooks::EmbedAuthor.new(
         icon_url: q_embed.author.icon_url,
@@ -287,12 +340,16 @@ DESC
         )
       end
     end
+
+    create_relate(event, message)
   end
 
   # 排他リアクション処理
   def exclusive_reaction(event)
     message = event.message
-    return if message.embeds.first.footer.nil?
+    embed = message.embeds.first
+    return if embed.color != COLOR_QUESTION
+    return if embed.footer.nil?
 
     # イベントを発生させたリアクション以外を削除
     message.reactions.each do |reaction|
