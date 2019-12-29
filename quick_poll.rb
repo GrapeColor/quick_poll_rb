@@ -180,7 +180,7 @@ class QuickPoll
 **```#{@bot.prefix}freepoll 質問文```**
 選択肢を作らず、メンバーが任意で付けたリアクションの数を集計する投票を作ります。
 
-コマンド実行後、60秒以内に↩️を押すとコマンドを取り消すことができます。
+コマンド実行後、1分以内に↩️を押すとコマンドを取り消すことができます。
 
 [より詳しい使い方](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
 DESC
