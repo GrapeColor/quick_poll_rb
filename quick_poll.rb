@@ -26,7 +26,7 @@ class QuickPoll
       help_command: false,
       webhook_commands: false,
       ignore_bots: true,
-      # log_mode: :silent
+      log_mode: :silent
     )
 
     @bot.ready { @bot.game = "#{@bot.prefix}poll" }
@@ -357,7 +357,7 @@ DESC
   def parse_args(content)
     args = []
     arg = ""
-    quote = false
+    quote = ""
     escape = false
 
     # 引数追加手続き
@@ -368,28 +368,36 @@ DESC
 
     content.chars.each.with_index(1) do |char, i|
       # クォート
-      if char == '"' && !escape
-        quote = !quote
-        add_arg.call
-        next
+      if char =~ /["'”]/ && !escape
+        if quote.empty?
+          quote = char
+          add_arg.call
+          next
+        end
+
+        if quote == char
+          quote = ""
+          add_arg.call
+          next
+        end
       end
 
       # クォートのエスケープ
-      if char == '\\' && content[i] == '"'
+      if content[i] && char + content[i] =~ /\\["'”]/
         escape = true
         next
       end
       escape = false if escape
 
       # 引数の区切り(半角スペース)
-      if char == " " && !quote
+      if char == " " && quote.empty?
         add_arg.call
         next
       end
 
       # 改行
       if char == "\n"
-        quote = false
+        quote = ""
         add_arg.call
         next
       end
