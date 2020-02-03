@@ -26,7 +26,7 @@ class QuickPoll
       help_command: false,
       webhook_commands: false,
       ignore_bots: true,
-      log_mode: :silent
+      # log_mode: :silent
     )
 
     @bot.ready { @bot.game = "#{@bot.prefix}poll" }
@@ -95,7 +95,7 @@ class QuickPoll
 
     # ハートビートで実行するメソッド
     @bot.heartbeat do |event|
-      timeout_relate
+      timeout_relates
     end
 
     @relate_messages = {}
@@ -135,7 +135,7 @@ class QuickPoll
   end
 
   # タイムアウトした関連付けを削除
-  def timeout_relate
+  def timeout_relates
     now = Time.now
     @relate_messages.reject! do |message_id, data|
       if now - data[:time] > 60
