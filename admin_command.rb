@@ -1,0 +1,23 @@
+class QuickPoll
+  private
+  def set_admin_command
+    @bot.mention(in: ENV['ADMIN_CHANNEL_ID'].to_i, from: ENV['ADMIN_USER_ID'].to_i) do |event|
+      next if event.content !~ /^<@!?\d+>\s+admin\R```(ruby)?\R(.+)\R```/m
+
+      $stdout = StringIO.new
+
+      begin
+        eval("pp(#{$2})")
+        log = $stdout.string
+      rescue => exception
+        log = exception
+      end
+
+      $stdout = STDOUT
+
+      log.to_s.scan(/.{1,#{2000 - 8}}/m) do |split|
+        event.send_message("```\n#{split}\n```")
+      end
+    end
+  end
+end

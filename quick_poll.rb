@@ -1,87 +1,24 @@
 require 'bundler/setup'
 require 'discordrb'
-require 'yaml'
 
-class String
-  EMOJI_FILE = File.expand_path('../emoji_list.yml', __FILE__)
-  EMOJI_LIST = File.open(EMOJI_FILE, 'r') { |f| YAML.load(f) }
-
-  # レシーバが絵文字か
-  def emoji?
-    return true if self =~ /^<:.+:\d+>$/
-    EMOJI_LIST.include?(self.delete("\uFE0F"))
-  end
-end
+require_relative './check_emoji'
+require_relative './poll_commands'
+require_relative './help_command'
+require_relative './admin_command'
 
 class QuickPoll
-  DEFAULT_EMOJIS = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯", "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹"]
-  COLOR_QUESTION = 0x3b88c3
-  COLOR_ANSWER   = 0xdd2e44
-  COLOR_HELP     = 0x77b255
-
   def initialize(token)
     @bot = Discordrb::Commands::CommandBot.new(
       token: token,
-      prefix: "/",
+      prefix: '/',
       help_command: false,
       webhook_commands: false,
-      ignore_bots: true,
-      # log_mode: :silent
+      ignore_bots: true
     )
 
-    @bot.ready { @bot.game = "#{@bot.prefix}poll" }
+    @bot.ready { @bot.game = "/poll" }
 
-    @bot.bucket(:poll_limit, limit: 1, time_span: 5)
-
-    rate_limit = {
-      rate_limit_message: "⚠️ コマンドは **%time%秒後** に再び使用できます",
-      bucket: :poll_limit
-    }
-
-    # 通常の投票コマンド
-    @bot.command(:poll, rate_limit) do |event, *args|
-      # ヘルプ表示
-      if args.empty?
-        show_help(event)
-        next nil
-      end
-
-      # 投票結果表示
-      if args.length == 1 && args[0] =~ /^\d+$/
-        show_result(event, $&.to_i)
-        next nil
-      end
-
-      # 投票を表示
-      create_question(event)
-      nil
-    end
-
-    # 排他的投票コマンド
-    @bot.command(:expoll, rate_limit) do |event, *args|
-      # ヘルプ表示
-      if args.empty?
-        show_help(event)
-        next nil
-      end
-
-      # 投票を表示
-      create_question(event)
-      nil
-    end
-
-    # 自由選択肢投票コマンド
-    @bot.command(:freepoll, rate_limit) do |event, arg|
-      # ヘルプ表示
-      if arg.nil?
-        show_help(event)
-        next nil
-      end
-
-      # 投票を表示
-      create_question(event, true)
-      nil
-    end
+    set_commands
 
     # リアクションイベント
     @bot.reaction_add do |event|
@@ -93,80 +30,14 @@ class QuickPoll
       nil
     end
 
-    # ハートビートで実行するメソッド
-    @bot.heartbeat do |event|
-      timeout_relates
-    end
-
-    @relate_messages = {}
-
-    # デバッグコマンド
-    @bot.mention(in: ENV['ADMIN_CHANNEL_ID'].to_i, from: ENV['ADMIN_USER_ID'].to_i) do |event|
-      next if event.content !~ /^<@!?\d+>\s+admin\R```(ruby)?\R(.+)\R```/m
-
-      $stdout = StringIO.new
-
-      begin
-        eval("pp(#{$2})")
-        log = $stdout.string
-      rescue => exception
-        log = exception
-      end
-
-      $stdout = STDOUT
-
-      log.to_s.scan(/.{1,#{2000 - 8}}/m) do |split|
-        event.send_message("```\n#{split}\n```")
-      end
-    end
+    set_admin_command
   end
 
-  # BOT起動
   def run(async = false)
     @bot.run(async)
   end
 
-  def sync
-    @bot.sync
-  end
-
   private
-
-  # コマンドとの関連付けを作成
-  def create_relate(event, message)
-    @relate_messages[event.message.id] = {
-      id: message.id,
-      channel_id: event.message.channel.id,
-      time: Time.now,
-    }
-    event.message.create_reaction("↩️")
-  end
-
-  # タイムアウトした関連付けを削除
-  def timeout_relates
-    now = Time.now
-    @relate_messages.reject! do |message_id, data|
-      if now - data[:time] > 60
-        begin
-          Discordrb::API::Channel.delete_own_reaction(@bot.token, data[:channel_id], message_id, "↩️")
-        rescue
-          nil
-        end
-        true
-      end
-    end
-  end
-
-  # コマンドとの関連付けを削除
-  def destroy_relate(event)
-    return if event.message.author.id != event.user.id
-    data = @relate_messages.delete(event.message.id)
-    if data
-      Discordrb::API::Channel.delete_message(@bot.token, data[:channel_id], data[:id])
-      Discordrb::API::Channel.delete_user_reaction(@bot.token, data[:channel_id], event.message.id, "↩️", event.user.id)
-      Discordrb::API::Channel.delete_own_reaction(@bot.token, data[:channel_id], event.message.id, "↩️")
-    end
-  end
 
   # ヘルプ表示
   def show_help(event)
@@ -192,89 +63,6 @@ class QuickPoll
 
 [より詳しい使い方](https://github.com/GrapeColor/quick_poll/blob/master/README.md)
 DESC
-    end
-
-    create_relate(event, message)
-  end
-
-  # 投票を表示
-  def create_question(event, free = false)
-    # 引数を分解
-    args = parse_args(event.content)
-    command  = args.shift       # コマンド部
-    question = args.shift       # 質問文
-
-    # 選択肢を生成
-    # 選択肢はあるか
-    if args.any?
-      # 引数が絵文字か判別
-      are_emoji = args.map(&:emoji?)
-
-      # すべての引数が絵文字か
-      if are_emoji.all?
-        emojis  = args
-        options = []
-      else
-        # 引数が絵文字と選択文のペアか
-        if are_emoji.each_slice(2).map { |i, j| i & !j }.all?
-          emojis, options = args.partition.with_index { |_, i| i.even? }
-        else
-          emojis  = DEFAULT_EMOJIS[0...args.length]
-          options = args
-        end
-      end
-
-      # 選択肢数を確認
-      if emojis.length > 20 || options.length > 20
-        event.send_message("⚠️ **選択肢は最大20個までです**")
-        return
-      end
-
-      # 絵文字の重複確認
-      if emojis.length - emojis.uniq.length > 0
-        event.send_message("⚠️ **選択肢の絵文字が重複しています**")
-        return
-      end
-    else
-      emojis  = free ? [] : ["⭕", "❌"]
-      options = []
-    end
-
-    # メッセージを仮送信
-    message = event.send_message("⌛ メッセージ生成中...")
-
-    # 投稿者名取得
-    if event.author.respond_to?(:display_name)
-      username = event.author.display_name
-    else
-      username = event.author.username
-    end
-
-    # 埋め込み生成
-    embed = Discordrb::Webhooks::Embed.new
-    embed.color = COLOR_QUESTION
-    embed.author = Discordrb::Webhooks::EmbedAuthor.new(
-      icon_url: event.author.avatar_url,
-      name: username
-    )
-    embed.title = "🇶 #{question}\u200c"
-    embed.description = ""
-    options.each_with_index do |option, i|
-      embed.description += "#{emojis[i]} #{option}\n"
-    end
-    embed.description += "\n投票結果は `#{@bot.prefix}poll #{message.id}` で表示できます。"
-    embed.footer = Discordrb::Webhooks::EmbedFooter.new(
-      text: "1人1つの選択肢だけ選べます"
-    ) if command == "#{@bot.prefix}expoll"
-
-    # 埋め込みの表示とリアクションの生成
-    message.edit("", embed)
-    emojis.each do |emoji|
-      if emoji =~ /<:(.+:\d+)>/
-        message.create_reaction($1)
-      else
-        message.create_reaction(emoji)
-      end
     end
 
     create_relate(event, message)
@@ -359,61 +147,5 @@ DESC
       next if event.emoji.to_reaction == reaction.to_s
       message.delete_reaction(event.user, reaction.to_s)
     end
-  end
-
-  # 引数の分解
-  def parse_args(content)
-    args = []
-    arg = ""
-    quote = ""
-    escape = false
-
-    # 引数追加手続き
-    add_arg = Proc.new {
-      args << arg.strip unless arg.empty?
-      arg = ""
-    }
-
-    content.chars.each.with_index(1) do |char, i|
-      # クォート
-      if char =~ /["'”]/ && !escape
-        if quote.empty?
-          quote = char
-          add_arg.call
-          next
-        end
-
-        if quote == char
-          quote = ""
-          add_arg.call
-          next
-        end
-      end
-
-      # クォートのエスケープ
-      if content[i] && char + content[i] =~ /\\["'”]/
-        escape = true
-        next
-      end
-      escape = false if escape
-
-      # 引数の区切り(半角スペース)
-      if char == " " && quote.empty?
-        add_arg.call
-        next
-      end
-
-      # 改行
-      if char == "\n"
-        quote = ""
-        add_arg.call
-        next
-      end
-
-      arg += char
-    end
-    add_arg.call
-
-    args
   end
 end
