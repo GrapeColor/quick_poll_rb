@@ -8,7 +8,6 @@ class QuickPoll
 
   def result_command
     @bot.command(:sumpoll) do |event, message_id|
-      next unless event.channel.text?
       next await_cancel(event.message, show_help(event)) unless message_id
       await_cancel(event.message, show_result(event, message_id))
     end

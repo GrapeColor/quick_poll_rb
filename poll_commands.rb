@@ -17,13 +17,12 @@ class QuickPoll
 
   def poll_commands
     poll_proc = proc do |event, arg|
-      next unless event.channel.text?
       next await_cancel(event.message, show_help(event)) unless arg
       create_poll(event)
     end
 
     @bot.command(:poll) do |event, arg|
-      next if event.server.member(SIMPLE_POLL, false)
+      next if event.server&.member(SIMPLE_POLL, false)
       poll_proc.call(event, arg)
     end
 
@@ -150,7 +149,8 @@ class QuickPoll
     end.compact.join("\n")
     description += "\n\n投票は `/sumpoll #{message.id}` で集計"
     author = Discordrb::Webhooks::EmbedAuthor.new(
-      icon_url: author.avatar_url, name: author.display_name
+      icon_url: author.avatar_url,
+      name: author.respond_to?(:display_name) ? author.display_name : author.distinct
     )
     footer = Discordrb::Webhooks::EmbedFooter.new(text: footer)
 
