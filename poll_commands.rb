@@ -179,6 +179,7 @@ class QuickPoll
 
     begin
       message.delete_own_reaction("↩️")
+      message.delete_reaction(message.user, "↩️")
     rescue; nil; end
     nil
   end

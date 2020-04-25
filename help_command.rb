@@ -27,7 +27,7 @@ class QuickPoll
         "```\n" +
         "↩️ でコマンド実行をキャンセル(60秒以内)" +
         "　➡️ **[サーバーへ追加]" +
-        "(https://discordapp.com/api/oauth2/authorize?client_id=631159438337900575&permissions=347200&scope=bot)**"
+        "(https://discordapp.com/api/oauth2/authorize?client_id=631159438337900575&permissions=355392&scope=bot)**"
     end
   end
 end
