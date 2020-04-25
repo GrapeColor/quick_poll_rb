@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/discordrb/discordrb
-  revision: 2c2b50e32c055aa8288b34644346a10696d5efa1
-  ref: 2c2b50e
+  revision: 44f93948a812e06b439968c6b072c0d9b749a842
+  ref: 44f9394
   specs:
     discordrb (3.3.0)
       discordrb-webhooks (~> 3.3.0)
@@ -19,11 +19,11 @@ GEM
       unf (>= 0.0.5, < 1.0.0)
     dotenv (2.7.5)
     event_emitter (0.2.6)
-    ffi (1.11.3-x64-mingw32)
+    ffi (1.12.2-x64-mingw32)
     http-accept (1.7.0)
     http-cookie (1.0.3)
       domain_name (~> 0.5)
-    mime-types (3.3)
+    mime-types (3.3.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2019.1009)
     netrc (0.11.0)
@@ -37,7 +37,7 @@ GEM
       netrc (~> 0.8)
     unf (0.1.4)
       unf_ext
-    unf_ext (0.0.7.6)
+    unf_ext (0.0.7.7-x64-mingw32)
     websocket (1.2.8)
     websocket-client-simple (0.3.0)
       event_emitter
