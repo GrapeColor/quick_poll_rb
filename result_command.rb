@@ -47,7 +47,7 @@ class QuickPoll
     reactions.map.with_index do |reaction, i|
       mention = reaction_mention(reaction)
       Discordrb::Webhooks::EmbedField.new(
-        name: "#{mention} #{options[mention]}\u200C",
+        name: "#{mention}** #{options[mention]}**\u200C",
         value: opt_value(counts[i], total, max, inline),
         inline: inline
       )

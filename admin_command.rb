@@ -3,12 +3,14 @@ class QuickPoll
 
   def set_admin_command
     @bot.mention(in: ENV['ADMIN_CHANNEL_ID'].to_i, from: ENV['ADMIN_USER_ID'].to_i) do |event|
-      next if event.content !~ /^<@!?\d+>\s+admin\R```(ruby)?\R(.+)\R```/m
+      next if event.content !~ /^<@!?\d+>\s+admin\R?```(ruby)?\R?(.+)\R?```/m
 
       $stdout = StringIO.new
 
       begin
-        eval("pp(#{$2})")
+        $2.split("\n\n").each do |code|
+          eval("pp(#{code})")
+        end
         log = $stdout.string
       rescue => exception
         log = exception
