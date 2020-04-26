@@ -1,3 +1,14 @@
+# frozen_string_literal: true
+
+require 'unicode/emoji'
+
+class String
+  def emoji?
+    return true if self =~ /^<:.+:\d+>$/
+    !!(self =~ /^#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}$/)
+  end
+end
+
 class QuickPoll
   DEFAULT_EMOJIS = [
     "🇦", "🇧", "🇨", "🇩", "🇪",
@@ -30,7 +41,7 @@ class QuickPoll
     @bot.command(:freepoll, &poll_proc)
 
     @bot.reaction_add do |event|
-      exclusive_vote(event)
+      exclusive_reaction(event)
     end
   end
 
@@ -147,7 +158,7 @@ class QuickPoll
     description = options.map do |emoji, opt|
       "\u200B#{emoji} #{opt}\u200C" if opt
     end.compact.join("\n")
-    description += "\n\n投票は `/sumpoll #{message.id}` で集計"
+    description += "\n\n投票結果は `/sumpoll #{message.id}` で集計"
     author = Discordrb::Webhooks::EmbedAuthor.new(
       icon_url: author.avatar_url,
       name: author.respond_to?(:display_name) ? author.display_name : author.distinct
@@ -184,7 +195,7 @@ class QuickPoll
     nil
   end
 
-  def exclusive_vote(event)
+  def exclusive_reaction(event)
     message = event.message
     poll = message.embeds[0]
     return unless message.from_bot?

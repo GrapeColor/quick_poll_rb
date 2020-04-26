@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class QuickPoll
   COLOR_HELP = 0x77b255
 

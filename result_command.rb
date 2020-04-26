@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class QuickPoll
   # COLOR_POLL     = 0x3b88c3
   # COLOR_EXPOLL   = COLOR_POLL.next

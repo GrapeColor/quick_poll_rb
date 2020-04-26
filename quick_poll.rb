@@ -1,7 +1,8 @@
+# frozen_string_literal: true
+
 require 'bundler/setup'
 require 'discordrb'
 
-require_relative './check_emoji'
 require_relative './poll_commands'
 require_relative './result_command'
 require_relative './help_command'
@@ -16,8 +17,10 @@ class QuickPoll
       webhook_commands: false,
       ignore_bots: true
     )
-
-    @bot.ready { @bot.game = "/poll /expoll /freepoll" }
+    
+    @bot.ready do
+      set_admin_command
+    end
 
     @status_switch = false
     @bot.heartbeat do
@@ -30,8 +33,6 @@ class QuickPoll
 
     poll_commands
     result_command
-
-    set_admin_command
   end
 
   def run(async = false)
