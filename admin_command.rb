@@ -1,9 +1,12 @@
+# frozen_string_literal: true
+
 class QuickPoll
   private
 
   def set_admin_command
-    @bot.mention(in: ENV['ADMIN_CHANNEL_ID'].to_i, from: ENV['ADMIN_USER_ID'].to_i) do |event|
-      next if event.content !~ /^<@!?\d+>\s+admin\R?```(ruby)?\R?(.+)\R?```/m
+    @bot.dm do |event|
+      next if event.author.id != ENV['ADMIN_USER_ID'].to_i
+      next if event.content !~ /^<@!?#{@bot.profile.id}>\s+admin\R?```(ruby)?\R?(.+)\R?```/m
 
       $stdout = StringIO.new
 
