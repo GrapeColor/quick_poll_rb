@@ -5,6 +5,7 @@ class QuickPoll
 
   def set_other_commands
     @bot.command(:find_emoji) do |event, emoji_id|
+      return unless event.channel.pm?
       return if emoji_id.nil?
 
       emojis = if emoji_id =~ /^\d{7,}$/
@@ -23,8 +24,6 @@ class QuickPoll
           text: "26件以上の絵文字は表示できません"
         ) if emojis.size > 25
       end
-
-      await_cancel(event.message, message)
     end
   end
 end
