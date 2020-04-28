@@ -37,7 +37,27 @@ class QuickPoll
       poll_proc.call(event, arg)
     end
 
-    @bot.command(:expoll, &poll_proc)
+    @bot.command(:expoll) do |event, arg|
+      channel = event.channel
+      message = event.message
+
+      next await_cancel(message, send_error(channel, "DMでは /expoll が利用できません")) if channel.private?
+
+      unless event.server&.bot.permission?(:manage_messages, channel)
+        await_cancel(
+          message,
+          send_error(
+            channel,
+            "BOTの権限を確認してください",
+            "`/expoll` コマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
+          )
+        )
+        next
+      end
+
+      poll_proc.call(event, arg)
+    end
+
     @bot.command(:freepoll, &poll_proc)
 
     @bot.reaction_add do |event|
@@ -186,7 +206,6 @@ class QuickPoll
 
     begin
       message.delete_own_reaction("↩️")
-      message.delete_reaction(message.user, "↩️")
     rescue; nil; end
     nil
   end
