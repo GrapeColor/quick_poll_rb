@@ -48,7 +48,7 @@ class QuickPoll
           message,
           send_error(
             channel,
-            "BOTの権限を確認してください",
+            "/expoll が利用できません",
             "`/expoll` コマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
           )
         )
@@ -82,6 +82,19 @@ class QuickPoll
       return await_cancel(message, send_error(channel, "絵文字が重複しています"))
     end
 
+    unless check_external_emoji(channel, options.keys)
+      poll.delete
+      await_cancel(
+        message,
+        send_error(
+          channel,
+          "外部の絵文字が利用できません",
+          "投票に外部の絵文字を使用したい場合、BOTに **外部の絵文字の使用** 権限が必要です"
+        )
+      )
+      return
+    end
+
     embed = case command
       when "/poll"
         poll_embed(
@@ -104,8 +117,9 @@ class QuickPoll
         return
       end
 
+    poll.edit("", embed)
     add_reactions(poll, options.keys)
-    await_cancel(message, poll.edit("", embed))
+    await_cancel(message, poll)
   end
 
   def parse_content(content)
@@ -208,6 +222,16 @@ class QuickPoll
       message.delete_own_reaction("↩️")
     rescue; nil; end
     nil
+  end
+
+  def check_external_emoji(channel, emojis)
+    server = channel.server
+    return true if channel.private? || server.bot.permission?(:use_external_emoji, channel)
+
+    !emojis.find do |emoji|
+      next if emoji !~ /<:.+:(\d+)>/
+      !server.emojis[$1.to_i]
+    end
   end
 
   def exclusive_reaction(event)
