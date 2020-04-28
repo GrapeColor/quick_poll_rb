@@ -26,7 +26,7 @@ class QuickPoll
 
   private
 
-  def poll_commands
+  def set_poll_commands
     poll_proc = proc do |event, arg|
       next await_cancel(event.message, show_help(event)) unless arg
       create_poll(event)
@@ -53,10 +53,7 @@ class QuickPoll
     command, query = args.shift(2)
 
     begin
-      if command != "/freepoll"
-        options = parse_args(args)
-        add_reactions(poll, options.keys)
-      end
+      options = command == "/freepoll" ? {} : parse_args(args)
     rescue TooManyOptions
       poll.delete
       return await_cancel(message, send_error(channel, "選択肢が20個を超えています"))
@@ -87,6 +84,7 @@ class QuickPoll
         return
       end
 
+    add_reactions(poll, options.keys)
     await_cancel(message, poll.edit("", embed))
   end
 
@@ -145,14 +143,6 @@ class QuickPoll
     return DEFAULT_EMOJIS[0...args.size].zip(args).to_h
   end
 
-  def add_reactions(message, emojis)
-    Thread.fork(message, emojis) do |message, emojis|
-      emojis.each do |emoji|
-        message.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji)
-      end
-    end
-  end
-
   def poll_embed(message, color, query, author, footer, options = {})
     title = "📊 #{query}\u200c"
     description = options.map do |emoji, opt|
@@ -175,6 +165,12 @@ class QuickPoll
       embed.color = COLOR_ERROR
       embed.title = "⚠️ #{title}"
       embed.description = description
+    end
+  end
+
+  def add_reactions(message, emojis)
+    emojis.each do |emoji|
+      message.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji)
     end
   end
 

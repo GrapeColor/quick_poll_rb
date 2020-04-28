@@ -8,7 +8,7 @@ class QuickPoll
 
   private
 
-  def result_command
+  def set_result_command
     @bot.command(:sumpoll) do |event, message_id|
       next await_cancel(event.message, show_help(event)) unless message_id
       await_cancel(event.message, show_result(event, message_id))

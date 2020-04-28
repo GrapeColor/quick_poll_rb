@@ -17,10 +17,6 @@ class QuickPoll
       webhook_commands: false,
       ignore_bots: true
     )
-    
-    @bot.ready do
-      set_admin_command
-    end
 
     @status_switch = false
     @bot.heartbeat do
@@ -31,8 +27,9 @@ class QuickPoll
       end
     end
 
-    poll_commands
-    result_command
+    set_poll_commands
+    set_result_command
+    set_admin_command
   end
 
   def run(async = false)
