@@ -6,7 +6,6 @@ require 'discordrb'
 require_relative './poll_commands'
 require_relative './result_command'
 require_relative './help_command'
-require_relative './other_commands'
 require_relative './admin_command'
 
 class QuickPoll
@@ -30,7 +29,6 @@ class QuickPoll
 
     set_poll_commands
     set_result_command
-    set_other_commands
     set_admin_command
   end
 
