@@ -18,14 +18,21 @@ class QuickPoll
       ignore_bots: true
     )
 
+    @ready_count = 0
+    @bot.ready do
+      @bot.update_status(:dnd, "Reconnected: #{@ready_count}", nil) if @ready_count > 0
+      @ready_count += 1
+    end
+
+    @hb_count = 0
     @bot.heartbeat do
-      if @reduce_switch = !@reduce_switch
-        if @status_switch = !@status_switch
-          @bot.game = "/poll /expoll /freepoll"
-        else
-          @bot.watching = "#{@bot.servers.size} servers"
-        end
+      case @hb_count % 6
+      when 0
+        @bot.update_status(:online, "/poll /expoll /freepoll", nil)
+      when 3
+        @bot.update_status(:online, "#{@bot.servers.size} servers", nil)
       end
+      @hb_count += 1
     end
 
     set_poll_commands
