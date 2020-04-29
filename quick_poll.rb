@@ -18,12 +18,13 @@ class QuickPoll
       ignore_bots: true
     )
 
-    @status_switch = false
     @bot.heartbeat do
-      if @status_switch = !@status_switch
-        @bot.game = "/poll /expoll /freepoll"
-      else
-        @bot.watching = "#{@bot.servers.size} servers"
+      if @reduce_switch = !@reduce_switch
+        if @status_switch = !@status_switch
+          @bot.game = "/poll /expoll /freepoll"
+        else
+          @bot.watching = "#{@bot.servers.size} servers"
+        end
       end
     end
 
