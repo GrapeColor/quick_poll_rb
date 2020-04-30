@@ -10,6 +10,7 @@ class String
 end
 
 class QuickPoll
+  MAX_OPTIONS = 20
   DEFAULT_EMOJIS = [
     "🇦", "🇧", "🇨", "🇩", "🇪",
     "🇫", "🇬", "🇭", "🇮", "🇯",
@@ -60,9 +61,9 @@ class QuickPoll
 
     @bot.command(:freepoll, &poll_proc)
 
-    @bot.reaction_add do |event|
-      exclusive_reaction(event)
-    end
+    @bot.command(:numpoll, &poll_proc)
+
+    @bot.reaction_add { |event| exclusive_reaction(event) }
   end
 
   def create_poll(event)
@@ -73,7 +74,10 @@ class QuickPoll
     command, query = args.shift(2)
 
     begin
-      options = command == "/freepoll" ? {} : parse_args(args)
+      options = parse_args(command, args)
+    rescue TooFewOptions
+      poll.delete
+      return await_cancel(message, send_error(channel, "選択肢が1個を下回っています"))
     rescue TooManyOptions
       poll.delete
       return await_cancel(message, send_error(channel, "選択肢が20個を超えています"))
@@ -95,22 +99,25 @@ class QuickPoll
       return
     end
 
+    message.attachments
+    image_url = get_with_image(message.attachments)
+
     embed = case command
-      when "/poll"
+      when "/poll", "/numpoll"
         poll_embed(
-          poll, COLOR_POLL, query, event.author,
+          poll, COLOR_POLL, query, event.author, image_url,
           "選択肢にリアクションで投票できます",
           options
         )
       when "/expoll"
         poll_embed(
-          poll, COLOR_EXPOLL, query, event.author,
+          poll, COLOR_EXPOLL, query, event.author, image_url,
           "選択肢にリアクションで1人1つ投票できます",
           options
         )
       when "/freepoll"
         poll_embed(
-          poll, COLOR_FREEPOLL, query, event.author,
+          poll, COLOR_FREEPOLL, query, event.author, image_url,
           "任意のリアクションで自由に投票できます"
         )
       else
@@ -152,15 +159,26 @@ class QuickPoll
     args
   end
 
+  class TooFewOptions < StandardError; end
   class TooManyOptions < StandardError; end
   class DuplicateEmojis < StandardError; end
 
-  def parse_args(args)
-    raise TooManyOptions if args.size > 40
+  def parse_args(command, args)
+    case command
+    when "/freepoll"
+      return {}
+    when "/numpoll"
+      num = args[0].to_i
+      raise TooFewOptions if num < 1
+      raise TooManyOptions if num > MAX_OPTIONS
+      return DEFAULT_EMOJIS[0...num].zip([]).to_h
+    end
+
+    raise TooManyOptions if args.size > MAX_OPTIONS * 2
     return { "⭕" => nil, "❌" => nil } if args.empty?
 
     if args.map(&:emoji?).all?
-      raise TooManyOptions if args.size > 20
+      raise TooManyOptions if args.size > MAX_OPTIONS
       raise DuplicateEmojis if args.size > args.uniq.size
       return args.zip([]).to_h
     end
@@ -168,16 +186,16 @@ class QuickPoll
     emojis, opts = args.partition.with_index { |_, i| i.even? }
 
     if args.size.even? && emojis.map(&:emoji?).all?
-      raise TooManyOptions if emojis.size > 20
+      raise TooManyOptions if emojis.size > MAX_OPTIONS
       raise DuplicateEmojis if emojis.size > emojis.uniq.size
       return emojis.zip(opts).to_h
     end
 
-    raise TooManyOptions if args.size > 20
+    raise TooManyOptions if args.size > MAX_OPTIONS
     return DEFAULT_EMOJIS[0...args.size].zip(args).to_h
   end
 
-  def poll_embed(message, color, query, author, footer, options = {})
+  def poll_embed(message, color, query, author, image_url, footer, options = {})
     title = "📊 #{query}\u200c"
     description = options.map do |emoji, opt|
       "\u200B#{emoji} #{opt}\u200C" if opt
@@ -187,10 +205,11 @@ class QuickPoll
       icon_url: author.avatar_url,
       name: author.respond_to?(:display_name) ? author.display_name : author.distinct
     )
+    image = Discordrb::Webhooks::EmbedImage.new(url: image_url) if image_url
     footer = Discordrb::Webhooks::EmbedFooter.new(text: footer)
 
     Discordrb::Webhooks::Embed.new(
-      title: title, description: description, color: color, author: author, footer: footer
+      title: title, description: description, color: color, author: author, footer: footer, image: image
     )
   end
 
@@ -202,6 +221,13 @@ class QuickPoll
     end
   end
 
+  def get_with_image(attachments)
+    attachments.find do |attachment|
+      next if attachment.height.nil?
+      attachment.filename =~ /\.(png|jpg|jpeg|gif|webp)$/
+    end&.url
+  end
+
   def add_reactions(message, emojis)
     emojis.each do |emoji|
       message.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji)
@@ -211,16 +237,13 @@ class QuickPoll
   def await_cancel(message, poll)
     message.react("↩️")
 
-    attrs = { timeout: 60, emoji: "↩️" }
-    @bot.add_await!(Discordrb::Events::ReactionAddEvent, attrs) do |event|
+    @bot.add_await!(Discordrb::Events::ReactionAddEvent, { timeout: 60, emoji: "↩️" }) do |event|
       next unless event.message == message && event.user == message.user
-      poll.delete
+      poll.delete rescue nil
       true
     end
 
-    begin
-      message.delete_own_reaction("↩️")
-    rescue; nil; end
+    message.delete_own_reaction("↩️") rescue nil
     nil
   end
 

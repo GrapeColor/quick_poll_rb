@@ -23,7 +23,7 @@ class QuickPoll
 
     poll = message.embeds[0]
     return unless message.from_bot?
-    return unless poll.color.between?(COLOR_POLL, COLOR_FREEPOLL)
+    return unless (COLOR_POLL..COLOR_FREEPOLL).cover?(poll.color)
 
     free = poll.color == COLOR_FREEPOLL
     options = poll.description.scan(/\u200B(.+?) (.+?)\u200C/).to_h

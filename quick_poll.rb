@@ -30,7 +30,7 @@ class QuickPoll
       when 0
         @bot.update_status(:online, "/poll /expoll /freepoll", nil)
       when 3
-        @bot.update_status(:online, "#{@bot.servers.size} servers", nil)
+        @bot.update_status(:online, "#{@bot.servers.size} guilds", nil)
       end
       @hb_count += 1
     end
