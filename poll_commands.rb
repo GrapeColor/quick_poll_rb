@@ -205,7 +205,7 @@ class QuickPoll
       icon_url: author.avatar_url,
       name: author.respond_to?(:display_name) ? author.display_name : author.distinct
     )
-    image = Discordrb::Webhooks::EmbedImage.new(url: image_url) if image_url
+    image = Discordrb::Webhooks::EmbedImage.new(url: image_url)
     footer = Discordrb::Webhooks::EmbedFooter.new(text: footer)
 
     Discordrb::Webhooks::Embed.new(
