@@ -168,7 +168,7 @@ class QuickPoll
     when "/freepoll"
       return {}
     when "/numpoll"
-      num = args[0].to_i
+      num = args[0].tr("０-９", "0-9").to_i
       raise TooFewOptions if num < 1
       raise TooManyOptions if num > MAX_OPTIONS
       return DEFAULT_EMOJIS[0...num].zip([]).to_h
