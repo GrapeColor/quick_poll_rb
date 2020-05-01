@@ -10,6 +10,17 @@ class String
 end
 
 class QuickPoll
+  CHANNEL_TYPES = Discordrb::Channel::TYPES.keys
+  NEED_PERMISSIONS = [
+    :read_messages,
+    :send_messages,
+    :manage_messages,
+    :embed_links,
+    :read_message_history,
+    :add_reactions,
+    :use_external_emoji,
+  ].freeze
+
   MAX_OPTIONS = 20
   DEFAULT_EMOJIS = [
     "🇦", "🇧", "🇨", "🇩", "🇪",
@@ -29,12 +40,29 @@ class QuickPoll
 
   def set_poll_commands
     poll_proc = proc do |event, arg|
-      next await_cancel(event.message, show_help(event)) unless arg
-      create_poll(event)
+      message = event.message
+      next await_cancel(message, show_help(event)) unless arg
+
+      begin
+        create_poll(event)
+      rescue => e
+        trace_error(event, e)
+        await_cancel(
+          message, send_error(
+            channel,
+            "予期しない原因でコマンドの実行に失敗しました",
+            "開発者にエラーを報告しました"
+          )
+        )
+        next
+      end
     end
 
     @bot.command(:poll) do |event, arg|
-      next if event.server&.member(SIMPLE_POLL, false)
+      if member = event.server&.member(SIMPLE_POLL, false)
+        next if member.permission?(:read_messages, event.channel) && member.status != :offline
+      end
+
       poll_proc.call(event, arg)
     end
 
@@ -217,7 +245,7 @@ class QuickPoll
     channel.send_embed do |embed|
       embed.color = COLOR_ERROR
       embed.title = "⚠️ #{title}"
-      embed.description = description
+      embed.description = description + "\n[質問・不具合報告](https://discord.gg/STzZ6GK)"
     end
   end
 
@@ -267,5 +295,45 @@ class QuickPoll
       next if event.emoji.to_reaction == reaction.to_s
       message.delete_reaction(event.user, reaction.to_s)
     end
+  end
+
+  def trace_error(event, e)
+    server = event.server
+    channel = event.channel
+    user = event.user
+    message = event.message
+    own = server&.bot
+
+    admin_user = @bot.user(ENV['ADMIN_USER_ID'])
+    admin_user.dm.send_embed do |embed|
+      embed.color = COLOR_ERROR
+      embed.title = "⚠️ エラーレポート"
+      embed.add_field(name: "実行コマンド", value: "```#{message.content}\u200C```")
+      embed.add_field(
+        name: "添付ファイル",
+        value: "```#{message.attachments.map(&:url).join("\n")}\u200C```"
+      )
+      embed.add_field(
+        name: "サーバー・チャンネル・ユーザー情報",
+        value: "```\n#{server.name}: #{server.id}\n" +
+          "#{channel.name} (#{CHANNEL_TYPES[channel.type]} channel): #{channel.id}\n" +
+          "#{user.distinct}: #{user.id}\n```"
+      )
+      embed.add_field(
+        name: "BOT権限情報",
+        value: "```\n#{check_permission_list(own, channel)}\n```"
+      ) if own
+      embed.add_field(
+        name: "エラーログ",
+        value: "#{e.inspect}\n#{e.backtrace.join("\n")}"
+      )
+      embed.timestamp = message.timestamp
+    end
+  end
+
+  def check_permission_list(member, channel)
+    NEED_PERMISSIONS.map do |action|
+      "#{member.permission?(action, channel) ? "✓" : "✗"} #{action}"
+    end.join("\n")
   end
 end

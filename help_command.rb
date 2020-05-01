@@ -28,7 +28,8 @@ class QuickPoll
         "文中に半角スペースを含めたい場合、\"\" で文を囲んでください。\n" +
         "コマンドと一緒に画像を添付すると、画像付きの投票を作成します。\n" +
         "```\n" +
-        "↩️ でコマンド実行をキャンセル(60秒以内)" +
+        "↩️ でコマンド実行をキャンセル(60秒以内)\n" +
+        "\n🈂️ [更新情報・質問・不具合報告](https://discord.gg/STzZ6GK)" +
         "　➡️ **[サーバーへ追加]" +
         "(https://discordapp.com/api/oauth2/authorize?client_id=631159438337900575&permissions=355392&scope=bot)**"
     end
