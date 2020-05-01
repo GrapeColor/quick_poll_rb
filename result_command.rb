@@ -36,7 +36,7 @@ class QuickPoll
         icon_url: poll.author.icon_url, name: poll.author.name
       )
       embed.image = Discordrb::Webhooks::EmbedImage.new(
-        url: poll.image
+        url: poll.image.url
       )
       embed.fields = result_fields(reactions, options, free)
     end
