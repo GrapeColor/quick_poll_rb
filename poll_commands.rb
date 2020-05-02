@@ -49,7 +49,7 @@ class QuickPoll
         trace_error(event, e)
         await_cancel(
           message, send_error(
-            channel,
+            event.channel,
             "予期しない原因でコマンドの実行に失敗しました",
             "開発者にエラーを報告しました"
           )
@@ -304,18 +304,20 @@ class QuickPoll
     message = event.message
     own = server&.bot
 
+    attachments = message.attachments.map(&:url).join("\n")
+
     admin_user = @bot.user(ENV['ADMIN_USER_ID'])
     admin_user.dm.send_embed do |embed|
       embed.color = COLOR_ERROR
       embed.title = "⚠️ エラーレポート"
-      embed.add_field(name: "実行コマンド", value: "```#{message.content}\u200C```")
+      embed.add_field(name: "実行コマンド", value: "```#{message.content}```")
       embed.add_field(
         name: "添付ファイル",
-        value: "```#{message.attachments.map(&:url).join("\n")}\u200C```"
-      )
+        value: "```#{attachments}```"
+      ) if attachments != ""
       embed.add_field(
         name: "サーバー・チャンネル・ユーザー情報",
-        value: "```\n#{server.name}: #{server.id}\n" +
+        value: "```\n#{"#{server.name}: #{server.id}\n" if server}" +
           "#{channel.name} (#{CHANNEL_TYPES[channel.type]} channel): #{channel.id}\n" +
           "#{user.distinct}: #{user.id}\n```"
       )
@@ -325,7 +327,7 @@ class QuickPoll
       ) if own
       embed.add_field(
         name: "エラーログ",
-        value: "#{e.inspect}\n#{e.backtrace.join("\n")}"
+        value: "```\n#{e.inspect}\n#{e.backtrace.join("\n")}\n```"
       )
       embed.timestamp = message.timestamp
     end
