@@ -1,37 +1,6 @@
 # frozen_string_literal: true
 
-require 'unicode/emoji'
-
-class String
-  def emoji?
-    return true if self =~ /^<:.+:\d+>$/
-    !!(self =~ /^#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}$/)
-  end
-end
-
 class QuickPoll
-  CHANNEL_TYPES = Discordrb::Channel::TYPES.keys
-  NEED_PERMISSIONS = [
-    :read_messages,
-    :send_messages,
-    :manage_messages,
-    :embed_links,
-    :read_message_history,
-    :add_reactions,
-    :use_external_emoji,
-  ].freeze
-
-  MAX_OPTIONS = 20
-  DEFAULT_EMOJIS = [
-    "🇦", "🇧", "🇨", "🇩", "🇪",
-    "🇫", "🇬", "🇭", "🇮", "🇯",
-    "🇰", "🇱", "🇲", "🇳", "🇴",
-    "🇵", "🇶", "🇷", "🇸", "🇹",
-  ].freeze
-
-  COLOR_POLL     = 0x3b88c3
-  COLOR_EXPOLL   = COLOR_POLL.next
-  COLOR_FREEPOLL = COLOR_EXPOLL.next
   COLOR_ERROR    = 0xffcc4d
 
   SIMPLE_POLL = 324631108731928587
@@ -39,25 +8,6 @@ class QuickPoll
   private
 
   def set_poll_commands
-    poll_proc = proc do |event, arg|
-      message = event.message
-      next await_cancel(message, show_help(event)) unless arg
-
-      begin
-        create_poll(event)
-      rescue => e
-        trace_error(event, e)
-        await_cancel(
-          message, send_error(
-            event.channel,
-            "予期しない原因でコマンドの実行に失敗しました",
-            "開発者にエラーを報告しました"
-          )
-        )
-        next
-      end
-    end
-
     @bot.command(:poll) do |event, arg|
       if member = event.server&.member(SIMPLE_POLL, false)
         next if member.permission?(:read_messages, event.channel) && member.status != :offline
@@ -70,16 +20,12 @@ class QuickPoll
       channel = event.channel
       message = event.message
 
-      next await_cancel(message, send_error(channel, "DMでは /expoll が利用できません")) if channel.private?
+      next send_error(channel, message, "DMでは /expoll が利用できません") if channel.private?
 
       unless event.server&.bot.permission?(:manage_messages, channel)
-        await_cancel(
-          message,
-          send_error(
-            channel,
-            "/expoll が利用できません",
-            "`/expoll` コマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
-          )
+        send_error(
+          channel, message, "/expoll が利用できません",
+          "`/expoll` コマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
         )
         next
       end
@@ -91,175 +37,40 @@ class QuickPoll
 
     @bot.command(:numpoll, &poll_proc)
 
+    @bot.command(:sumpoll) do |event, message_id|
+      message = event.message
+      next await_cancel(message, show_help(event)) unless message_id
+
+      begin
+        result = show_result(event, message_id)
+      rescue => e
+        trace_error(event, e)
+        next
+      end
+
+      await_cancel(message, result)
+    end
+
     @bot.reaction_add { |event| exclusive_reaction(event) }
   end
 
-  def create_poll(event)
-    channel = event.channel
-    message = event.message
-    poll = event.send("⌛ 投票生成中...")
-    args = parse_content(event.content)
-    command, query = args.shift(2)
+  def poll_proc
+    proc do |event, arg|
+      next await_cancel(event.message, show_help(event)) unless arg
 
-    begin
-      options = parse_args(command, args)
-    rescue TooFewOptions
-      poll.delete
-      return await_cancel(message, send_error(channel, "選択肢が1個を下回っています"))
-    rescue TooManyOptions
-      poll.delete
-      return await_cancel(message, send_error(channel, "選択肢が20個を超えています"))
-    rescue DuplicateEmojis
-      poll.delete
-      return await_cancel(message, send_error(channel, "絵文字が重複しています"))
+      create_poll(event)
+    rescue => e
+      next trace_error(event, e)
     end
-
-    unless check_external_emoji(channel, options.keys)
-      poll.delete
-      await_cancel(
-        message,
-        send_error(
-          channel,
-          "外部の絵文字が利用できません",
-          "投票に外部の絵文字を使用したい場合、BOTに **外部の絵文字の使用** 権限が必要です"
-        )
-      )
-      return
-    end
-
-    message.attachments
-    image_url = get_with_image(message.attachments)
-
-    embed = case command
-      when "/poll", "/numpoll"
-        poll_embed(
-          poll, COLOR_POLL, query, event.author, image_url,
-          "選択肢にリアクションで投票できます",
-          options
-        )
-      when "/expoll"
-        poll_embed(
-          poll, COLOR_EXPOLL, query, event.author, image_url,
-          "選択肢にリアクションで1人1つ投票できます",
-          options
-        )
-      when "/freepoll"
-        poll_embed(
-          poll, COLOR_FREEPOLL, query, event.author, image_url,
-          "任意のリアクションで自由に投票できます"
-        )
-      else
-        return
-      end
-
-    poll.edit("", embed)
-    add_reactions(poll, options.keys)
-    await_cancel(message, poll)
   end
 
-  def parse_content(content)
-    args = []
-    arg = quote = ""
-    escape = false
-
-    add_arg = -> do
-      args << arg.strip if arg != ""
-      arg = ""
-    end
-
-    content.chars.each do |char|
-      if char =~ /["'”]/ && !escape && (quote == "" || quote == char)
-        quote = quote == "" ? char : ""
-        next add_arg.call
-      end
-
-      next if escape = char == "\\" && !escape
-
-      if char == " " && quote == "" || char == "\n"
-        quote = ""
-        next add_arg.call
-      end
-
-      arg += char
-    end
-
-    add_arg.call
-    args
-  end
-
-  class TooFewOptions < StandardError; end
-  class TooManyOptions < StandardError; end
-  class DuplicateEmojis < StandardError; end
-
-  def parse_args(command, args)
-    case command
-    when "/freepoll"
-      return {}
-    when "/numpoll"
-      num = args[0].tr("０-９", "0-9").to_i
-      raise TooFewOptions if num < 1
-      raise TooManyOptions if num > MAX_OPTIONS
-      return DEFAULT_EMOJIS[0...num].zip([]).to_h
-    end
-
-    raise TooManyOptions if args.size > MAX_OPTIONS * 2
-    return { "⭕" => nil, "❌" => nil } if args.empty?
-
-    if args.map(&:emoji?).all?
-      raise TooManyOptions if args.size > MAX_OPTIONS
-      raise DuplicateEmojis if args.size > args.uniq.size
-      return args.zip([]).to_h
-    end
-
-    emojis, opts = args.partition.with_index { |_, i| i.even? }
-
-    if args.size.even? && emojis.map(&:emoji?).all?
-      raise TooManyOptions if emojis.size > MAX_OPTIONS
-      raise DuplicateEmojis if emojis.size > emojis.uniq.size
-      return emojis.zip(opts).to_h
-    end
-
-    raise TooManyOptions if args.size > MAX_OPTIONS
-    return DEFAULT_EMOJIS[0...args.size].zip(args).to_h
-  end
-
-  def poll_embed(message, color, query, author, image_url, footer, options = {})
-    title = "📊 #{query}\u200c"
-    description = options.map do |emoji, opt|
-      "\u200B#{emoji} #{opt}\u200C" if opt
-    end.compact.join("\n")
-    description += "\n\n投票結果は `/sumpoll #{message.id}` で集計"
-    author = Discordrb::Webhooks::EmbedAuthor.new(
-      icon_url: author.avatar_url,
-      name: author.respond_to?(:display_name) ? author.display_name : author.distinct
-    )
-    image = Discordrb::Webhooks::EmbedImage.new(url: image_url)
-    footer = Discordrb::Webhooks::EmbedFooter.new(text: footer)
-
-    Discordrb::Webhooks::Embed.new(
-      title: title, description: description, color: color, author: author, footer: footer, image: image
-    )
-  end
-
-  def send_error(channel, title, description = "")
-    channel.send_embed do |embed|
+  def send_error(channel, message, title, description = "")
+    poll = channel.send_embed do |embed|
       embed.color = COLOR_ERROR
       embed.title = "⚠️ #{title}"
       embed.description = description + "\n[質問・不具合報告](https://discord.gg/STzZ6GK)"
     end
-  end
-
-  def get_with_image(attachments)
-    attachments.find do |attachment|
-      next if attachment.height.nil?
-      attachment.filename =~ /\.(png|jpg|jpeg|gif|webp)$/
-    end&.url
-  end
-
-  def add_reactions(message, emojis)
-    emojis.each do |emoji|
-      message.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji)
-    end
+    await_cancel(message, poll)
   end
 
   def await_cancel(message, poll)
@@ -275,16 +86,6 @@ class QuickPoll
     nil
   end
 
-  def check_external_emoji(channel, emojis)
-    server = channel.server
-    return true if channel.private? || server.bot.permission?(:use_external_emoji, channel)
-
-    !emojis.find do |emoji|
-      next if emoji !~ /<:.+:(\d+)>/
-      !server.emojis[$1.to_i]
-    end
-  end
-
   def exclusive_reaction(event)
     message = event.message
     poll = message.embeds[0]
@@ -295,47 +96,5 @@ class QuickPoll
       next if event.emoji.to_reaction == reaction.to_s
       message.delete_reaction(event.user, reaction.to_s)
     end
-  end
-
-  def trace_error(event, e)
-    server = event.server
-    channel = event.channel
-    user = event.user
-    message = event.message
-    own = server&.bot
-
-    attachments = message.attachments.map(&:url).join("\n")
-
-    admin_user = @bot.user(ENV['ADMIN_USER_ID'])
-    admin_user.dm.send_embed do |embed|
-      embed.color = COLOR_ERROR
-      embed.title = "⚠️ エラーレポート"
-      embed.add_field(name: "実行コマンド", value: "```#{message.content}```")
-      embed.add_field(
-        name: "添付ファイル",
-        value: "```#{attachments}```"
-      ) if attachments != ""
-      embed.add_field(
-        name: "サーバー・チャンネル・ユーザー情報",
-        value: "```\n#{"#{server.name}: #{server.id}\n" if server}" +
-          "#{channel.name} (#{CHANNEL_TYPES[channel.type]} channel): #{channel.id}\n" +
-          "#{user.distinct}: #{user.id}\n```"
-      )
-      embed.add_field(
-        name: "BOT権限情報",
-        value: "```\n#{check_permission_list(own, channel)}\n```"
-      ) if own
-      embed.add_field(
-        name: "エラーログ",
-        value: "```\n#{e.inspect}\n#{e.backtrace.join("\n")}\n```"
-      )
-      embed.timestamp = message.timestamp
-    end
-  end
-
-  def check_permission_list(member, channel)
-    NEED_PERMISSIONS.map do |action|
-      "#{member.permission?(action, channel) ? "✓" : "✗"} #{action}"
-    end.join("\n")
   end
 end

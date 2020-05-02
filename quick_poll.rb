@@ -4,7 +4,8 @@ require 'bundler/setup'
 require 'discordrb'
 
 require_relative './poll_commands'
-require_relative './result_command'
+require_relative './create_poll'
+require_relative './trace_error'
 require_relative './help_command'
 require_relative './admin_command'
 
@@ -36,7 +37,6 @@ class QuickPoll
     end
 
     set_poll_commands
-    set_result_command
     set_admin_command
   end
 
