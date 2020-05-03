@@ -25,12 +25,12 @@ class QuickPoll
 
   def split_log(log, limit)
     logs = []
-    part = "```\n"
+    part = "```"
 
     log.each_line do |line|
       if part.size + line.size > limit - 3
         logs << "#{part}```" 
-        part = "```\n"
+        part = "```"
       end
       part += line
     end

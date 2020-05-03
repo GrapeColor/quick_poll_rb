@@ -29,29 +29,20 @@ class QuickPoll
       embed.timestamp = message.timestamp
 
       embed.add_field(name: "実行コマンド", value: "```#{message.content}```")
-      embed.add_field(
-        name: "添付ファイル",
-        value: "```#{attachments}```"
-      ) if attachments != ""
+      embed.add_field(name: "添付ファイル", value: "```#{attachments}```") if attachments != ""
 
       embed.add_field(
-        name: "サーバー・チャンネル・ユーザー情報",
-        value: "```\n#{"#{server.name}: #{server.id}\n" if server}" +
-          "#{channel.name} (#{CHANNEL_TYPES[channel.type]} channel): #{channel.id}\n" +
-          "#{user.distinct}: #{user.id}\n```"
+        name: "チャンネル情報",
+        value: "```Server ID: #{server ? server.id : "none"}\n" +
+          "Channel ID: #{channel.id}\n" +
+          "Channel type: #{CHANNEL_TYPES[channel.type].upcase}```"
       )
-      embed.add_field(
-        name: "BOT権限情報",
-        value: "```\n#{check_permission_list(own, channel)}\n```"
-      ) if own
+      embed.add_field(name: "BOT権限情報", value: "```#{check_permission_list(own, channel)}```") if own
 
-      embed.add_field(
-        name: "例外クラス",
-        value: "```#{e.inspect}```"
-      )
+      embed.add_field(name: "例外クラス", value: "```#{e.inspect}```")
       backtraces = split_log("#{e.backtrace.join("\n")}\n", 1024)
       backtraces.each.with_index(1) do |trace, i|
-        embed.add_field(name: "バックトレース#{i}", value: trace)
+        embed.add_field(name: "バックトレース-#{i}", value: trace)
       end
     end
 

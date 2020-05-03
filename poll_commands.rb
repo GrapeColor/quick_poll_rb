@@ -72,7 +72,7 @@ class QuickPoll
   end
 
   def await_cancel(message, poll)
-    message.react("↩️")
+    message.react("↩️") rescue return
 
     @bot.add_await!(Discordrb::Events::ReactionAddEvent, { timeout: 60, emoji: "↩️" }) do |event|
       next unless event.message == message && event.user == message.user
@@ -92,7 +92,7 @@ class QuickPoll
 
     message.reactions.each do |reaction|
       next if event.emoji.to_reaction == reaction.to_s
-      message.delete_reaction(event.user, reaction.to_s)
+      message.delete_reaction(event.user, reaction.to_s) rescue nil
     end
   end
 end
