@@ -19,9 +19,22 @@ class QuickPoll
 
       $stdout = STDOUT
 
-      log.to_s.scan(/.{1,#{2000 - 8}}/m) do |split|
-        event.send("```\n#{split}\n```")
-      end
+      split_log(log, 2000).each { |log| event.send(log) }
     end
+  end
+
+  def split_log(log, limit)
+    logs = []
+    part = "```\n"
+
+    log.each_line do |line|
+      if part.size + line.size > limit - 3
+        logs << "#{part}```" 
+        part = "```\n"
+      end
+      part += line
+    end
+
+    logs << "#{part}```" 
   end
 end

@@ -49,8 +49,9 @@ class QuickPoll
         name: "例外クラス",
         value: "```#{e.inspect}```"
       )
-      split_backtrace(e).each.with_index(1) do |log, i|
-        embed.add_field(name: "バックトレース#{i}", value: log)
+      backtraces = split_log("#{e.backtrace.join("\n")}\n", 1024)
+      backtraces.each.with_index(1) do |trace, i|
+        embed.add_field(name: "バックトレース#{i}", value: trace)
       end
     end
 
@@ -65,21 +66,5 @@ class QuickPoll
     NEED_PERMISSIONS.map do |action|
       "#{member.permission?(action, channel) ? "✓" : "✗"} #{action}"
     end.join("\n")
-  end
-
-  def split_backtrace(e)
-    log = "#{e.backtrace.join("\n")}\n"
-    logs = []
-    part = "```\n"
-
-    log.each_line do |line|
-      if part.size + line.size > 1021 # Field's value limitation - ``` (1024 - 3)
-        logs << "#{part}```" 
-        part = "```\n"
-      end
-      part += line
-    end
-
-    logs << "#{part}```" 
   end
 end

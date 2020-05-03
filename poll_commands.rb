@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
 class QuickPoll
-  COLOR_ERROR    = 0xffcc4d
-
   SIMPLE_POLL = 324631108731928587
+  COLOR_ERROR = 0xffcc4d
 
   private
 
@@ -57,7 +56,6 @@ class QuickPoll
   def poll_proc
     proc do |event, arg|
       next await_cancel(event.message, show_help(event)) unless arg
-
       create_poll(event)
     rescue => e
       next trace_error(event, e)

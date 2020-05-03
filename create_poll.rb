@@ -29,7 +29,7 @@ class QuickPoll
   def create_poll(event)
     channel = event.channel
     message = event.message
-    poll = send_waiter(channel) rescue return
+    poll = send_waiter(channel, "投票生成中...") rescue return
 
     command, query, options, image_url = parse_command(channel, message, poll)
 
@@ -49,10 +49,10 @@ class QuickPoll
     await_cancel(message, poll)
   end
 
-  def send_waiter(channel)
+  def send_waiter(channel, msg)
     channel.send_embed do |embed|
       embed.color = COLOR_WAIT
-      embed.title = "⌛ 投票生成中..."
+      embed.title = "⌛ #{msg}"
     end
   end
 
@@ -204,29 +204,35 @@ class QuickPoll
 
   def show_result(event, message_id)
     channel = event.channel
-    unless message = channel.message(message_id.to_i)
+    message = channel.message(message_id.to_i)
+    result = send_waiter(channel, "投票集計中...") rescue return
+    poll_embed = message&.embeds[0]
+
+    unless message&.from_bot? && (COLOR_POLL..COLOR_FREEPOLL).cover?(poll_embed.color)
+      result.delete
       return send_error(channel, event.message, "指定された投票が見つかりません")
     end
 
-    poll = message.embeds[0]
-    return unless message.from_bot?
-    return unless (COLOR_POLL..COLOR_FREEPOLL).cover?(poll.color)
-
-    free = poll.color == COLOR_FREEPOLL
-    options = poll.description.scan(/\u200B(.+?) (.+?)\u200C/).to_h
+    free = poll_embed.color == COLOR_FREEPOLL
+    options = poll_embed.description.scan(/\u200B(.+?) (.+?)\u200C/).to_h
     reactions = free ? message.reactions : message.my_reactions
-
-    event.send_embed do |embed|
-      embed.color = COLOR_RESULT
-      embed.title = poll.title
-      embed.author = Discordrb::Webhooks::EmbedAuthor.new(
-        icon_url: poll.author.icon_url, name: poll.author.name
-      )
-      embed.image = Discordrb::Webhooks::EmbedImage.new(
-        url: poll.image&.url
-      )
-      embed.fields = result_fields(reactions, options, free)
+    if reactions == []
+      result.delete
+      return send_error(channel, event.message, "まだ何も投票されていません")
     end
+
+    embed = Discordrb::Webhooks::Embed.new
+    embed.color = COLOR_RESULT
+    embed.title = poll_embed.title
+    embed.author = Discordrb::Webhooks::EmbedAuthor.new(
+      icon_url: poll_embed.author.icon_url, name: poll_embed.author.name
+    )
+    embed.image = Discordrb::Webhooks::EmbedImage.new(
+      url: poll_embed.image&.url
+    )
+    embed.fields = result_fields(reactions, options, free)
+
+    result.edit("", embed)
   end
 
   def result_fields(reactions, options, free)
