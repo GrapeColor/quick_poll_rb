@@ -32,7 +32,7 @@ class QuickPoll
     args[0].delete_prefix!("#{"ex" if ex}#{prefix}")
     return unless COMMANDS.include?(args[0])
 
-    @command_count[server.id] += 1
+    @command_count[event.channel.id] += 1
     exec_command(event, prefix, ex, args)
   end
 
