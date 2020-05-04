@@ -10,6 +10,8 @@ require_relative './help_command'
 require_relative './admin_command'
 
 class QuickPoll
+  SUPPORT_URL = "https://discord.gg/STzZ6GK"
+
   def initialize(token)
     @bot = Discordrb::Commands::CommandBot.new(token: token, ignore_bots: true)
 
@@ -39,10 +41,13 @@ class QuickPoll
       info = event.send_embed do |embed|
         embed.color = COLOR_HELP
         embed.title = "📊 Quick Poll情報"
-        embed.description = "コマンドプレフィックス: `#{prefix}`\n" +
-          "チュートリアル表示コマンド: `#{prefix}poll`\n" +
-          "導入サーバー数: `#{@bot.servers.size}`\n\n" +
-          "[更新情報・質問・不具合報告](https://discord.gg/STzZ6GK)"
+        embed.description = <<~DESC
+          コマンドプレフィックス: `#{prefix}`
+          チュートリアル表示コマンド: `#{prefix}poll`
+          導入サーバー数: `#{@bot.servers.size}`
+
+          [更新情報・質問・不具合報告](#{SUPPORT_URL})
+        DESC
       end
       await_cancel(event.message, info)
     end

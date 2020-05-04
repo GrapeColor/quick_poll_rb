@@ -116,7 +116,7 @@ class QuickPoll
     poll = channel.send_embed do |embed|
       embed.color = COLOR_ERROR
       embed.title = "⚠️ #{title}"
-      embed.description = description + "\n[質問・不具合報告](https://discord.gg/STzZ6GK)"
+      embed.description = description + "\n[質問・不具合報告](#{SUPPORT_URL})"
     end
     await_cancel(message, poll)
   end
