@@ -15,7 +15,7 @@ class QuickPoll
 
     @ready_count = 0
     @bot.ready do
-      @bot.update_status(:dnd, "Reconnected: #{@ready_count}", nil) if @ready_count > 0
+      @bot.update_status(:dnd, @ready_count > 0 ? "Reconnected: #{@ready_count}times" : "Restarted", nil)
       @ready_count += 1
 
       listup_server_prefixes
@@ -25,7 +25,7 @@ class QuickPoll
     @bot.heartbeat do
       case @hb_count % 6
       when 0
-        @bot.update_status(:online, "/poll ex/poll", nil)
+        @bot.update_status(:online, "/poll | ex/poll", nil)
       when 3
         @bot.update_status(:online, "#{@bot.servers.size} guilds", nil)
       end
@@ -65,6 +65,6 @@ class QuickPoll
   end
 
   def update_server_prefix(server)
-    @server_prefixes[server.id] = server.bot.nick.to_s =~ /^\[(?!ex)(\S{1,8})\]/ ? $1 : '/'
+    @server_prefixes[server.id] = server.bot.nick.to_s =~ /^\[(\S{1,8})\]/ ? $1 : '/'
   end
 end
