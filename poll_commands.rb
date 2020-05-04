@@ -7,8 +7,6 @@ class QuickPoll
   private
 
   def set_poll_commands
-    @commands_regexp = /(#{COMMANDS.join('|')})/
-
     @command_count = Hash.new(0)
     @bot.message { |event| parse_message(event) }
 
@@ -26,12 +24,13 @@ class QuickPoll
     content = event.content
     server = event.server
     prefix = @server_prefixes[server&.id]
-    return if content !~ /^(ex)?#{Regexp.escape(prefix)}/
+    match_prefix = content.match(/^(ex)?#{Regexp.escape(prefix)}/)
+    return unless match_prefix
 
-    ex = !!$1
+    ex = !!match_prefix[1]
     args = parse_content(content)
     args[0].delete_prefix!("#{"ex" if ex}#{prefix}")
-    return if args[0] !~ @commands_regexp
+    return unless COMMANDS.include?(args[0])
 
     @command_count[server.id] += 1
     exec_command(event, prefix, ex, args)
@@ -48,7 +47,7 @@ class QuickPoll
     end
 
     content.chars.each do |char|
-      if char.start_with?('"', "'", '”') && !escape && (quote == "" || quote == char)
+      if (char == '"' || char == "'" || char == '”') && (quote == "" || quote == char) && !escape
         quote = quote == "" ? char : ""
         add_arg.call
         next
@@ -137,25 +136,21 @@ class QuickPoll
 
   def exclusive_reaction(event)
     message = event.message
-    poll = message.embeds[0]
+    poll_embed = message.embeds[0]
     return unless message.from_bot?
-    return if poll.color != COLOR_EXPOLL
+    return if poll_embed.color != COLOR_EXPOLL
 
     user = event.user
     emoji = event.emoji
+    reacted = @last_reactions[message.id][user.id]
+    @last_reactions[message.id][user.id] = emoji.to_reaction
 
-    if reacted = @last_reactions[message.id][user.id]
-      @last_reactions[message.id][user.id] = emoji.to_reaction
-      Thread.new do
-        message.delete_reaction(user, reacted) rescue nil
-      end if reacted != ""
+    if reacted
+      message.delete_reaction(user, reacted) rescue nil if reacted != ""
     else
-      @last_reactions[message.id][user.id] = emoji.to_reaction
-      Thread.new do
-        message.reactions.each do |reaction|
-          next if @last_reactions[message.id][user.id] == reaction.to_s
-          message.delete_reaction(user, reaction.to_s) rescue nil
-        end
+      message.reactions.each do |reaction|
+        next if @last_reactions[message.id][user.id] == reaction.to_s
+        message.delete_reaction(user, reaction.to_s) rescue nil
       end
     end
   end

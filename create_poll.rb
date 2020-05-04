@@ -154,7 +154,7 @@ class QuickPoll
   def get_with_image(attachments)
     attachments.find do |attachment|
       next if attachment.height.nil?
-      attachment.filename =~ /\.(png|jpg|jpeg|gif|webp)$/
+      attachment.url.end_with?('.png', '.jpg', '.jpeg', '.gif', '.webp')
     end&.url
   end
 
