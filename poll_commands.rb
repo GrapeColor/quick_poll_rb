@@ -18,7 +18,7 @@ class QuickPoll
       message = event.message
       user = event.user
       reaction = @last_reactions[message.id][user.id]
-      @last_reactions[message.id].delete(user.id) if event.emoji.to_reaction == reaction
+      @last_reactions[message.id][user.id] = "" if event.emoji.to_reaction == reaction
     end
   end
 
@@ -144,17 +144,19 @@ class QuickPoll
     user = event.user
     emoji = event.emoji
 
-    if reaction = @last_reactions[message.id][user.id]
-      Thread.new { message.delete_reaction(user, reaction) rescue nil } 
+    if reacted = @last_reactions[message.id][user.id]
+      @last_reactions[message.id][user.id] = emoji.to_reaction
+      Thread.new do
+        message.delete_reaction(user, reacted) rescue nil
+      end if reacted != ""
     else
+      @last_reactions[message.id][user.id] = emoji.to_reaction
       Thread.new do
         message.reactions.each do |reaction|
-          next if emoji.to_reaction == reaction.to_s
+          next if @last_reactions[message.id][user.id] == reaction.to_s
           message.delete_reaction(user, reaction.to_s) rescue nil
         end
       end
     end
-
-    @last_reactions[message.id][user.id] = emoji.to_reaction
   end
 end
