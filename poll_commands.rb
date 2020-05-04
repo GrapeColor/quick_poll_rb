@@ -1,65 +1,116 @@
 # frozen_string_literal: true
 
 class QuickPoll
-  SIMPLE_POLL = 324631108731928587
+  COMMANDS = %w(poll freepoll numpoll sumpoll).freeze
   COLOR_ERROR = 0xffcc4d
 
   private
 
   def set_poll_commands
-    @bot.command(:poll) do |event, arg|
-      if member = event.server&.member(SIMPLE_POLL, false)
-        next if member.permission?(:read_messages, event.channel) && member.status != :offline
-      end
+    @commands_regexp = /(#{COMMANDS.join('|')})/
 
-      poll_proc.call(event, arg)
-    end
+    @command_count = Hash.new(0)
+    @bot.message { |event| parse_message(event) }
 
-    @bot.command(:expoll) do |event, arg|
-      channel = event.channel
-      message = event.message
-
-      next send_error(channel, message, "DMでは /expoll が利用できません") if channel.private?
-
-      unless event.server&.bot.permission?(:manage_messages, channel)
-        send_error(
-          channel, message, "/expoll が利用できません",
-          "`/expoll` コマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
-        )
-        next
-      end
-
-      poll_proc.call(event, arg)
-    end
-
-    @bot.command(:freepoll, &poll_proc)
-
-    @bot.command(:numpoll, &poll_proc)
-
-    @bot.command(:sumpoll) do |event, message_id|
-      message = event.message
-      next await_cancel(message, show_help(event)) unless message_id
-
-      begin
-        result = show_result(event, message_id)
-      rescue => e
-        trace_error(event, e)
-        next
-      end
-
-      await_cancel(message, result)
-    end
-
+    @last_reactions = Hash.new { |h, k| h[k] = {} } 
     @bot.reaction_add { |event| exclusive_reaction(event) }
+    @bot.reaction_remove do |event|
+      message = event.message
+      user = event.user
+      reaction = @last_reactions[message.id][user.id]
+      @last_reactions[message.id].delete(user.id) if event.emoji.to_reaction == reaction
+    end
   end
 
-  def poll_proc
-    proc do |event, arg|
-      next await_cancel(event.message, show_help(event)) unless arg
-      create_poll(event)
-    rescue => e
-      next trace_error(event, e)
+  def parse_message(event)
+    content = event.content
+    server = event.server
+    prefix = @server_prefixes[server&.id]
+    return if content !~ /^(ex)?#{Regexp.escape(prefix)}/
+
+    ex = !!$1
+    args = parse_content(content)
+    args[0].delete_prefix!("#{"ex" if ex}#{prefix}")
+    return if args[0] !~ @commands_regexp
+
+    @command_count[server.id] += 1
+    exec_command(event, prefix, ex, args)
+  end
+
+  def parse_content(content)
+    args = []
+    arg = quote = ""
+    escape = false
+
+    add_arg = -> do
+      args << arg.strip if arg != ""
+      arg = ""
     end
+
+    content.chars.each do |char|
+      if char.start_with?('"', "'", '”') && !escape && (quote == "" || quote == char)
+        quote = quote == "" ? char : ""
+        add_arg.call
+        next
+      end
+
+      next if escape = char == "\\" && !escape
+
+      if char == " " && quote == "" || char == "\n"
+        quote = ""
+        add_arg.call
+        next
+      end
+
+      arg += char
+    end
+
+    add_arg.call
+    args
+  end
+
+  def exec_command(event, prefix, ex, args)
+    if args.size <= 1
+      await_cancel(event.message, show_help(event, prefix)) 
+      return
+    end
+
+    if args[0] == "sumpoll"
+      exec_sumpoll(event, prefix, args)
+      return
+    end
+
+    return unless exec_expoll(event, prefix) if ex
+    create_poll(event, prefix, ex, args)
+  rescue => e
+    trace_error(event, e)
+  end
+
+  def exec_expoll(event, prefix)
+    channel = event.channel
+    message = event.message
+
+    if channel.private?
+      send_error(channel, message, "DM・グループDM内では 'ex#{prefix}' プレフィックスが利用できません")
+      return false
+    end
+
+    unless event.server&.bot.permission?(:manage_messages, channel)
+      send_error(
+        channel, message, "'ex#{prefix}' プレフィックスが利用できません",
+        "`ex#{prefix}` プレフィックスコマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
+      )
+      return false
+    end
+
+    true
+  end
+
+  def exec_sumpoll(event, prefix, args)
+    result = show_result(event, args[1])
+    await_cancel(event.message, result)
+  rescue => e
+    trace_error(event, e)
   end
 
   def send_error(channel, message, title, description = "")
@@ -90,9 +141,20 @@ class QuickPoll
     return unless message.from_bot?
     return if poll.color != COLOR_EXPOLL
 
-    message.reactions.each do |reaction|
-      next if event.emoji.to_reaction == reaction.to_s
-      message.delete_reaction(event.user, reaction.to_s) rescue nil
+    user = event.user
+    emoji = event.emoji
+
+    if reaction = @last_reactions[message.id][user.id]
+      Thread.new { message.delete_reaction(user, reaction) rescue nil } 
+    else
+      Thread.new do
+        message.reactions.each do |reaction|
+          next if emoji.to_reaction == reaction.to_s
+          message.delete_reaction(user, reaction.to_s) rescue nil
+        end
+      end
     end
+
+    @last_reactions[message.id][user.id] = emoji.to_reaction
   end
 end

@@ -1,7 +1,8 @@
 GIT
-  remote: https://github.com/discordrb/discordrb
-  revision: 44f93948a812e06b439968c6b072c0d9b749a842
-  ref: 44f9394
+  remote: https://github.com/GrapeColor/discordrb
+  revision: 0455a720856a4e91c3a45245c96e3658a6dad222
+  ref: 0455a72
+  branch: fix-calculation-of-permissions
   specs:
     discordrb (3.3.0)
       discordrb-webhooks (~> 3.3.0)
@@ -10,7 +11,7 @@ GIT
       rest-client (>= 2.0.0)
       websocket-client-simple (>= 0.3.0)
     discordrb-webhooks (3.3.0)
-      rest-client (>= 2.1.0.rc1)
+      rest-client (>= 2.0.0)
 
 GEM
   remote: https://rubygems.org/
@@ -25,7 +26,7 @@ GEM
       domain_name (~> 0.5)
     mime-types (3.3.1)
       mime-types-data (~> 3.2015)
-    mime-types-data (3.2019.1009)
+    mime-types-data (3.2020.0425)
     netrc (0.11.0)
     opus-ruby (1.0.1)
       ffi

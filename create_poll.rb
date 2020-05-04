@@ -26,26 +26,25 @@ class QuickPoll
 
   private
 
-  def create_poll(event)
+  def create_poll(event, prefix, ex, args)
     channel = event.channel
     message = event.message
     poll = send_waiter(channel, "投票生成中...") rescue return
 
-    command, query, options, image_url = parse_command(channel, message, poll)
+    command, query, options, image_url = parse_poll_command(channel, message, poll, args)
 
-    color, footer = case command
-      when "/poll", "/numpoll"
-        [COLOR_POLL, "選択肢にリアクションで投票できます"]
-      when "/expoll"
-        [COLOR_EXPOLL, "選択肢にリアクションで1人1つ投票できます"]
-      when "/freepoll"
-        [COLOR_FREEPOLL, "任意のリアクションで自由に投票できます"]
-      else
-        return
-      end
+    color = ex ? COLOR_EXPOLL : COLOR_POLL
+    footer = case command
+             when :poll, :numpoll
+               "選択肢にリアクションで#{"1人1票だけ" if ex}投票できます"
+             when :freepoll
+               "任意のリアクションで#{"1人1票だけ" if ex}投票できます"
+             else
+               return
+             end
 
-    poll.edit("", poll_embed(poll, color, event.author, query, options, image_url, footer))
-    return unless add_reactions(message, poll, options.keys)
+    poll.edit("", poll_embed(prefix, poll, color, event.author, query, options, image_url, footer))
+    return unless add_reactions(channel, message, poll, options.keys)
     await_cancel(message, poll)
   end
 
@@ -56,21 +55,26 @@ class QuickPoll
     end
   end
 
-  def parse_command(channel, message, poll)
-    args = parse_content(message.content)
+  def parse_poll_command(channel, message, poll, args)
     command, query = args.shift(2)
+    command = command.to_sym
 
     begin
       options = parse_args(command, args)
+    rescue TooFewArguments
+      args_error = "選択肢の数が指定されていません"
     rescue TooFewOptions
-      poll.delete
-      return send_error(channel, message, "選択肢が1個を下回っています")
+      args_error = "選択肢が1個を下回っています"
     rescue TooManyOptions
-      poll.delete
-      return send_error(channel, message, "選択肢が20個を超えています")
+      args_error = "選択肢が20個を超えています"
     rescue DuplicateEmojis
+      args_error = "絵文字が重複しています"
+    end
+
+    if args_error
       poll.delete
-      return send_error(channel, message, "絵文字が重複しています")
+      send_error(channel, message, args_error)
+      return
     end
 
     unless check_external_emoji(channel, options.keys)
@@ -88,45 +92,17 @@ class QuickPoll
     [command, query, options, image_url]
   end
 
-  def parse_content(content)
-    args = []
-    arg = quote = ""
-    escape = false
-
-    add_arg = -> do
-      args << arg.strip if arg != ""
-      arg = ""
-    end
-
-    content.chars.each do |char|
-      if char =~ /["'”]/ && !escape && (quote == "" || quote == char)
-        quote = quote == "" ? char : ""
-        next add_arg.call
-      end
-
-      next if escape = char == "\\" && !escape
-
-      if char == " " && quote == "" || char == "\n"
-        quote = ""
-        next add_arg.call
-      end
-
-      arg += char
-    end
-
-    add_arg.call
-    args
-  end
-
+  class TooFewArguments < StandardError; end
   class TooFewOptions < StandardError; end
   class TooManyOptions < StandardError; end
   class DuplicateEmojis < StandardError; end
 
   def parse_args(command, args)
     case command
-    when "/freepoll"
+    when :freepoll
       return {}
-    when "/numpoll"
+    when :numpoll
+      raise TooFewArguments if args == []
       num = args[0].tr("０-９", "0-9").to_i
       raise TooFewOptions if num < 1
       raise TooManyOptions if num > MAX_OPTIONS
@@ -154,7 +130,7 @@ class QuickPoll
     return DEFAULT_EMOJIS[0...args.size].zip(args).to_h
   end
 
-  def poll_embed(message, color, author, query, options, image_url, footer)
+  def poll_embed(prefix, message, color, author, query, options, image_url, footer)
     embed = Discordrb::Webhooks::Embed.new
 
     embed.color = color
@@ -163,7 +139,7 @@ class QuickPoll
     embed.description = options.map do |emoji, opt|
       "\u200B#{emoji} #{opt}\u200C" if opt
     end.compact.join("\n")
-    embed.description += "\n\n投票結果は `/sumpoll #{message.id}` で集計"
+    embed.description += "\n\n投票結果は `#{prefix}sumpoll #{message.id}` で集計"
 
     embed.author = Discordrb::Webhooks::EmbedAuthor.new(
       icon_url: author.avatar_url,
@@ -182,13 +158,13 @@ class QuickPoll
     end&.url
   end
 
-  def add_reactions(message, poll, emojis)
+  def add_reactions(channel, message, poll, emojis)
     emojis.each { |emoji| poll.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji) }
   rescue
     poll.delete
     send_error(
       channel, message, "投票を作成できません",
-      "投票を作成するためには、BOTに **メッセージ履歴を読む** と **リアクションの追加** 権限が必要です"
+      "投票を作成するには、BOTに **メッセージ履歴を読む** と **リアクションの追加** 権限が必要です"
     )
   end
 
@@ -206,19 +182,21 @@ class QuickPoll
     channel = event.channel
     message = channel.message(message_id.to_i)
     result = send_waiter(channel, "投票集計中...") rescue return
-    poll_embed = message&.embeds[0]
+    poll_embed = message.embeds[0] if message
 
     unless message&.from_bot? && (COLOR_POLL..COLOR_FREEPOLL).cover?(poll_embed.color)
       result.delete
-      return send_error(channel, event.message, "指定された投票が見つかりません")
+      send_error(channel, event.message, "指定された投票が見つかりません")
+      return
     end
 
-    free = poll_embed.color == COLOR_FREEPOLL
+    free = message.my_reactions == []
     options = poll_embed.description.scan(/\u200B(.+?) (.+?)\u200C/).to_h
     reactions = free ? message.reactions : message.my_reactions
     if reactions == []
       result.delete
-      return send_error(channel, event.message, "まだ何も投票されていません")
+      send_error(channel, event.message, "まだ何も投票されていません")
+      return
     end
 
     embed = Discordrb::Webhooks::Embed.new

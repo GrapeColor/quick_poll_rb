@@ -30,13 +30,6 @@ class QuickPoll
 
       embed.add_field(name: "実行コマンド", value: "```#{message.content}```")
       embed.add_field(name: "添付ファイル", value: "```#{attachments}```") if attachments != ""
-
-      embed.add_field(
-        name: "チャンネル情報",
-        value: "```Server ID: #{server ? server.id : "none"}\n" +
-          "Channel ID: #{channel.id}\n" +
-          "Channel type: #{CHANNEL_TYPES[channel.type].upcase}```"
-      )
       embed.add_field(name: "BOT権限情報", value: "```#{check_permission_list(own, channel)}```") if own
 
       embed.add_field(name: "例外クラス", value: "```#{e.inspect}```")
@@ -47,9 +40,9 @@ class QuickPoll
     end
 
     send_error(
-      event.channel, event.message,
+      channel, message,
       "予期しない原因でコマンドの実行に失敗しました",
-      "開発者にエラーを報告しました"
+      "開発者にエラー情報を送信しました"
     )
   end
 
