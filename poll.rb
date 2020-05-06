@@ -56,14 +56,20 @@ module QuickPoll
     end
 
     def initialize(event, prefix, ex, args)
-      channel = event.channel
-      message = event.message
-      poll = send_waiter(channel, "投票生成中...") rescue return
+      @prefix = prefix
+      @author = event.author
+      @server = event.server
+      @channel = event.channel
+      @message = event.message
 
-      command, query, options, image_url = parse_poll_command(channel, message, poll, args)
+      @response = send_waiter("投票生成中...")
 
-      color = ex ? COLOR_EXPOLL : COLOR_POLL
-      footer = case command
+      parse_poll_command(args)
+
+      return if ex && !can_exclusive
+
+      @color = ex ? COLOR_EXPOLL : COLOR_POLL
+      @footer = case @command
         when :poll, :numpoll
           "選択肢にリアクションで#{"1人1票だけ" if ex}投票できます"
         when :freepoll
@@ -72,19 +78,22 @@ module QuickPoll
           return
         end
 
-      poll.edit("", poll_embed(prefix, poll, color, event.author, query, options, image_url, footer))
-      return unless add_reactions(channel, message, poll, options.keys)
-      Canceler.new(message, poll)
+      @response.edit("", poll_embed)
+      return unless add_reactions
+    end
+
+    def delete
+      @response.delete
     end
 
     private
 
-    def parse_poll_command(channel, message, poll, args)
-      command, query = args.shift(2)
-      command = command.to_sym
+    def parse_poll_command(args)
+      command, @query = args.shift(2)
+      @command = command.to_sym
 
       begin
-        options = parse_args(command, args)
+        @options = parse_args(args)
       rescue TooFewArguments
         args_error = "選択肢の数が指定されていません"
       rescue TooFewOptions
@@ -96,24 +105,40 @@ module QuickPoll
       end
 
       if args_error
-        poll.delete
-        send_error(channel, message, args_error)
+        @response.delete
+        @response = send_error(args_error)
         return
       end
 
-      unless check_external_emoji(channel, options.keys)
-        poll.delete
-        send_error(
-          channel, message, "外部の絵文字が利用できません",
+      unless check_external_emoji
+        @response.delete
+        @response = send_error(
+          "外部の絵文字が利用できません",
           "投票に外部の絵文字を使用したい場合、BOTに **外部の絵文字の使用** 権限が必要です"
         )
         return
       end
 
-      message.attachments
-      image_url = get_with_image(message.attachments)
+      @image_url = get_with_image
+    end
 
-      [command, query, options, image_url]
+    def can_exclusive
+      if @channel.private?
+        @response = send_error(
+          "DM・グループDM内では 'ex#{@prefix}' プレフィックスが利用できません"
+        )
+        return false
+      end
+
+      unless @server&.bot.permission?(:manage_messages, @channel)
+        @response = send_error(
+          "'ex#{@prefix}' プレフィックスが利用できません",
+          "`ex#{@prefix}` プレフィックスコマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
+        )
+        return false
+      end
+
+      true
     end
 
     class TooFewArguments < StandardError; end
@@ -121,8 +146,8 @@ module QuickPoll
     class TooManyOptions < StandardError; end
     class DuplicateEmojis < StandardError; end
 
-    def parse_args(command, args)
-      case command
+    def parse_args(args)
+      case @command
       when :freepoll
         return {}
       when :numpoll
@@ -154,52 +179,51 @@ module QuickPoll
       return DEFAULT_EMOJIS[0...args.size].zip(args).to_h
     end
 
-    def poll_embed(prefix, message, color, author, query, options, image_url, footer)
+    def poll_embed
       embed = Discordrb::Webhooks::Embed.new
 
-      embed.color = color
-      embed.title = "📊 #{query}\u200c"
+      embed.color = @color
+      embed.title = "📊 #{@query}\u200c"
 
-      embed.description = options.map do |emoji, opt|
+      embed.description = @options.map do |emoji, opt|
         "\u200B#{emoji} #{opt}\u200C" if opt
       end.compact.join("\n")
-      embed.description += "\n\n投票結果は `#{prefix}sumpoll #{message.id}` で集計"
+      embed.description += "\n\n投票結果は `#{@prefix}sumpoll #{@response.id}` で集計"
 
       embed.author = Discordrb::Webhooks::EmbedAuthor.new(
-        icon_url: author.avatar_url,
-        name: author.respond_to?(:display_name) ? author.display_name : author.distinct
+        icon_url: @author.avatar_url,
+        name: @author.respond_to?(:display_name) ? @author.display_name : @author.distinct
       )
-      embed.image = Discordrb::Webhooks::EmbedImage.new(url: image_url)
-      embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: footer)
+      embed.image = Discordrb::Webhooks::EmbedImage.new(url: @image_url)
+      embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: @footer)
 
       embed
     end
 
-    def get_with_image(attachments)
-      attachments.find do |attachment|
+    def check_external_emoji
+      return true if @channel.private? || @server.bot.permission?(:use_external_emoji, @channel)
+
+      !@options.keys.find do |emoji|
+        next if emoji !~ /<a?:.+:(\d+)>/
+        !@server.emojis[$1.to_i]
+      end
+    end
+
+    def get_with_image
+      @message.attachments.find do |attachment|
         next if attachment.height.nil?
         attachment.url.end_with?('.png', '.jpg', '.jpeg', '.gif', '.webp')
       end&.url
     end
 
-    def add_reactions(channel, message, poll, emojis)
-      emojis.each { |emoji| poll.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji) }
+    def add_reactions
+      @options.keys.each { |emoji| @response.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji) }
     rescue
-      poll.delete
-      send_error(
-        channel, message, "投票を作成できません",
+      @response.delete
+      @response = send_error(
+        "投票を作成できません",
         "投票を作成するには、BOTに **メッセージ履歴を読む** と **リアクションの追加** 権限が必要です"
       )
-    end
-
-    def check_external_emoji(channel, emojis)
-      server = channel.server
-      return true if channel.private? || server.bot.permission?(:use_external_emoji, channel)
-
-      !emojis.find do |emoji|
-        next if emoji !~ /<:.+:(\d+)>/
-        !server.emojis[$1.to_i]
-      end
     end
   end
 end

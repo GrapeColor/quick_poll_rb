@@ -5,53 +5,63 @@ module QuickPoll
     include Base
 
     def initialize(event, message_id)
-      channel = event.channel
-      message = channel.message(message_id.to_i)
-      result = send_waiter(channel, "投票集計中...") rescue return
-      poll_embed = message.embeds[0] if message
+      @bot = event.bot
+      @channel = event.channel
+      @message = event.message
+      @poll = @channel.message(message_id.to_i)
+      @poll_embed = @poll.embeds[0] if @poll
 
-      unless message&.from_bot? && (COLOR_POLL..COLOR_FREEPOLL).cover?(poll_embed.color)
-        result.delete
-        send_error(channel, event.message, "指定された投票が見つかりません")
+      @response = send_waiter("投票集計中...")
+
+      unless @poll&.from_bot? && (COLOR_POLL..COLOR_FREEPOLL).cover?(@poll_embed.color)
+        @response.delete
+        @response = send_error("指定された投票が見つかりません")
         return
       end
 
-      free = message.my_reactions == []
-      options = poll_embed.description.scan(/\u200B(.+?) (.+?)\u200C/).to_h
-      reactions = free ? message.reactions : message.my_reactions
-      if reactions == []
-        result.delete
-        send_error(channel, event.message, "まだ何も投票されていません")
-        return
-      end
+      return unless parse_poll
 
       embed = Discordrb::Webhooks::Embed.new
       embed.color = COLOR_RESULT
-      embed.title = poll_embed.title
-      embed.author = Discordrb::Webhooks::EmbedAuthor.new(
-        icon_url: poll_embed.author.icon_url, name: poll_embed.author.name
-      )
-      embed.image = Discordrb::Webhooks::EmbedImage.new(
-        url: poll_embed.image&.url
-      )
-      embed.fields = result_fields(event.bot, reactions, options, free)
+      embed.title = @poll_embed.title
+      embed.author = { icon_url: @poll_embed.author.icon_url, name: @poll_embed.author.name }
+      embed.image = { url: @poll_embed.image&.url }
+      embed.fields = result_fields
 
-      Canceler.new(event.message, result.edit("", embed))
+      @response.edit("", embed)
+    end
+
+    def delete
+      @response.delete
     end
 
     private
 
-    def result_fields(bot, reactions, options, free)
-      counts = reactions.map(&:count)
-      counts = counts.map(&:pred) unless free
+    def parse_poll
+      @free = @poll.my_reactions == []
+      @options = @poll_embed.description.scan(/\u200B(.+?) (.+?)\u200C/).to_h
+      @reactions = @free ? @poll.reactions : @poll.my_reactions
+
+      if @reactions == []
+        @response.delete
+        @response = send_error("まだ何も投票されていません")
+        return false
+      end
+
+      true
+    end
+
+    def result_fields
+      counts = @reactions.map(&:count)
+      counts = counts.map(&:pred) unless @free
       total = [counts.sum, 1].max
       max = [counts.max, 1].max
 
-      inline = reactions.size > 7
-      reactions.map.with_index do |reaction, i|
-        mention = reaction.id ? bot.emoji(reaction.id).mention : reaction.name
+      inline = @reactions.size > 7
+      @reactions.map.with_index do |reaction, i|
+        mention = reaction.id ? @bot.emoji(reaction.id).mention : reaction.name
         Discordrb::Webhooks::EmbedField.new(
-          name: "#{mention}** #{options[mention]}**\u200C",
+          name: "#{mention}** #{@options[mention]}**\u200C",
           value: opt_value(counts[i], total, max, inline),
           inline: inline
         )

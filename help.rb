@@ -5,7 +5,8 @@ module QuickPoll
     include Base
 
     def initialize(event, prefix)
-      help = send_waiter(event.channel, "ヘルプ表示生成中...") rescue return
+      @channel = event.channel
+      @response = send_waiter("ヘルプ表示生成中...")
 
       embed = Discordrb::Webhooks::Embed.new
       embed.color = COLOR_HELP
@@ -40,7 +41,11 @@ module QuickPoll
         ➡️ **[サーバーへ追加](#{event.bot.invite_url(permission_bits: PERMISSION_BITS)})**
       DESC
 
-      Canceler.new(event.message, help.edit("", embed))
+      @response.edit("", embed)
+    end
+
+    def delete
+      @response.delete
     end
   end
 end

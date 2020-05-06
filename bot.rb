@@ -5,7 +5,7 @@ require 'discordrb'
 
 require_relative './canceler'
 require_relative './base'
-require_relative './commands'
+require_relative './response'
 require_relative './poll'
 require_relative './result'
 require_relative './help'
@@ -30,8 +30,6 @@ module QuickPoll
   COLOR_ERROR    = 0xffcc4d
 
   class Bot
-    include Commands
-
     def initialize(token)
       @bot = Discordrb::Bot.new(token: token, ignore_bots: true)
 
@@ -47,12 +45,7 @@ module QuickPoll
         @hb_count += 1
       end
 
-      @bot.mention do |event|
-        return if event.content !~ /^<@!?#{@bot.profile.id}>$/
-        send_info(event)
-      end
-
-      command_events
+      Response.events(@bot)
       Canceler.events(@bot)
       Poll.events(@bot)
       Admin.events(@bot)
@@ -60,24 +53,6 @@ module QuickPoll
 
     def run(background = false)
       @bot.run(background)
-    end
-
-    private
-
-    def send_info(event)
-      prefix = @@server_prefixes[event.server&.id]
-      help = event.send_embed do |embed|
-        embed.color = COLOR_HELP
-        embed.title = "📊 Quick Poll情報"
-        embed.description = <<~DESC
-          コマンドプレフィックス: `#{prefix}`
-          チュートリアル表示コマンド: `#{prefix}poll`
-          導入サーバー数: `#{@bot.servers.size}`
-
-          [更新情報・質問・不具合報告](#{SUPPORT_URL})
-        DESC
-      end
-      Canceler.new(event.message, help)
     end
   end
 end
