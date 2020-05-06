@@ -64,7 +64,7 @@ module QuickPoll
 
       @response = send_waiter("投票生成中...")
 
-      parse_poll_command(args)
+      return unless parse_poll_command(args)
 
       return if ex && !can_exclusive
 
@@ -79,7 +79,7 @@ module QuickPoll
         end
 
       @response.edit("", poll_embed)
-      return unless add_reactions
+      add_reactions
     end
 
     def delete
@@ -105,25 +105,27 @@ module QuickPoll
       end
 
       if args_error
-        @response.delete
+        delete
         @response = send_error(args_error)
-        return
+        return false
       end
 
       unless check_external_emoji
-        @response.delete
+        delete
         @response = send_error(
           "外部の絵文字が利用できません",
           "投票に外部の絵文字を使用したい場合、BOTに **外部の絵文字の使用** 権限が必要です"
         )
-        return
+        return false
       end
 
       @image_url = get_with_image
+      true
     end
 
     def can_exclusive
       if @channel.private?
+        delete
         @response = send_error(
           "DM・グループDM内では 'ex#{@prefix}' プレフィックスが利用できません"
         )
@@ -131,6 +133,7 @@ module QuickPoll
       end
 
       unless @server&.bot.permission?(:manage_messages, @channel)
+        delete
         @response = send_error(
           "'ex#{@prefix}' プレフィックスが利用できません",
           "`ex#{@prefix}` プレフィックスコマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
@@ -219,7 +222,7 @@ module QuickPoll
     def add_reactions
       @options.keys.each { |emoji| @response.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji) }
     rescue
-      @response.delete
+      delete
       @response = send_error(
         "投票を作成できません",
         "投票を作成するには、BOTに **メッセージ履歴を読む** と **リアクションの追加** 権限が必要です"

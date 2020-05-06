@@ -53,37 +53,33 @@ module QuickPoll
       arg = quote = ""
       escape = false
 
-      add_arg = -> do
-        args << arg.strip if arg != ""
-        arg = ""
-      end
-
       content.chars.each do |char|
-        if (char == '"' || char == "'" || char == '”') && (quote == "" || quote == char) && !escape
+        if !escape && (quote == "" || quote == char) && (char == '"' || char == "'" || char == '”')
+          args << arg
+          arg = ""
           quote = quote == "" ? char : ""
-          add_arg.call
           next
         end
 
         next if escape = char == "\\" && !escape
 
         if char == " " && quote == "" || char == "\n"
-          quote = ""
-          add_arg.call
+          args << arg 
+          arg = quote = ""
           next
         end
 
         arg += char
       end
 
-      add_arg.call
-      args
+      args << arg
+      args.reject(&:empty?)
     end
 
     def self.information(event)
       prefix = @@server_prefixes[event.server&.id]
 
-      help = event.send_embed do |embed|
+      response = event.send_embed do |embed|
         embed.color = COLOR_HELP
         embed.title = "📊 Quick Poll情報"
         embed.description = <<~DESC
@@ -95,7 +91,7 @@ module QuickPoll
         DESC
       end
 
-      Canceler.new(event.message, help)
+      Canceler.new(event.message, response)
     end
 
     def initialize(event, prefix, ex, args)
@@ -121,7 +117,7 @@ module QuickPoll
       if @args[0] != "sumpoll"
         Poll.new(@event, @prefix, @ex, @args)
       else
-        Result.new(@event, args[1])
+        Result.new(@event, @args[1])
       end
     end
 

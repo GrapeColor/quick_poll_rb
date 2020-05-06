@@ -14,7 +14,7 @@ module QuickPoll
       @response = send_waiter("投票集計中...")
 
       unless @poll&.from_bot? && (COLOR_POLL..COLOR_FREEPOLL).cover?(@poll_embed.color)
-        @response.delete
+        delete
         @response = send_error("指定された投票が見つかりません")
         return
       end
@@ -43,7 +43,7 @@ module QuickPoll
       @reactions = @free ? @poll.reactions : @poll.my_reactions
 
       if @reactions == []
-        @response.delete
+        delete
         @response = send_error("まだ何も投票されていません")
         return false
       end
