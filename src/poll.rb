@@ -193,12 +193,12 @@ module QuickPoll
       end.compact.join("\n")
       embed.description += "\n\n投票結果は `#{@prefix}sumpoll #{@response.id}` で集計"
 
-      embed.author = Discordrb::Webhooks::EmbedAuthor.new(
+      embed.author = {
         icon_url: @author.avatar_url,
         name: @author.respond_to?(:display_name) ? @author.display_name : @author.distinct
-      )
-      embed.image = Discordrb::Webhooks::EmbedImage.new(url: @image_url)
-      embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: @footer)
+      }
+      embed.image = { url: @image_url }
+      embed.footer = { text: @footer }
 
       embed
     end

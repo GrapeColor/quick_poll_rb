@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module QuickPoll
-  class Admin
+  module Admin
     def self.events(bot)
       bot.dm do |event|
         next if event.author != ENV['ADMIN_USER_ID']

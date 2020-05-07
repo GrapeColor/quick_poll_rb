@@ -4,6 +4,18 @@ module QuickPoll
   class Canceler
     TIMEOUT = 60
 
+    def self.events(bot)
+      @@cancelers ||= {}
+
+      bot.heartbeat { @@cancelers.values.select(&:timeout?).each(&:remove) }
+
+      bot.reaction_add({ emoji: "↩️" }) do |event|
+        next unless canceler = @@cancelers[event.message.id]
+
+        canceler.cancel if event.user == canceler.message.user
+      end
+    end
+
     def initialize(message, response)
       message.react("↩️")
     rescue
@@ -17,18 +29,6 @@ module QuickPoll
     end
 
     attr_reader :message
-
-    def self.events(bot)
-      @@cancelers ||= {}
-
-      bot.heartbeat { @@cancelers.values.select(&:timeout?).each(&:remove) }
-
-      bot.reaction_add({ emoji: "↩️" }) do |event|
-        next unless canceler = @@cancelers[event.message.id]
-
-        canceler.cancel if event.user == canceler.message.user
-      end
-    end
 
     def cancel
       @response.delete

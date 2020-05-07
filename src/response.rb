@@ -20,7 +20,7 @@ module QuickPoll
       bot.message { |event| parse(event) }
 
       bot.mention do |event|
-        return if event.content !~ /^<@!?#{bot.profile.id}>$/
+        next if event.content !~ /^<@!?#{bot.profile.id}>$/
         information(event)
       end
     end
