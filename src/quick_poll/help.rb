@@ -5,13 +5,10 @@ module QuickPoll
     include Base
 
     def initialize(event, prefix, response)
-      @channel = event.channel
-      @response = response
-
       embed = Discordrb::Webhooks::Embed.new
       embed.color = COLOR_HELP
       embed.title = "📊 Quick Pollの使い方"
-      embed.url = "https://github.com/GrapeColor/quick_poll/wiki/%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95"
+      embed.url = "https://github.com/GrapeColor/quick_poll/wiki/使用方法"
 
       embed.description = <<~DESC
         🇦 🇧 🇨 🇩 …で選択できる投票を作る
@@ -41,7 +38,7 @@ module QuickPoll
         ➡️ **[サーバーへ追加](#{event.bot.invite_url(permission_bits: PERMISSION_BITS)})**
       DESC
 
-      @response.edit("", embed)
+      response.edit("", embed)
     end
   end
 end
