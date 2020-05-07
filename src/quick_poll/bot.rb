@@ -30,15 +30,15 @@ module QuickPoll
   COLOR_ERROR    = 0xffcc4d
 
   class Bot
-    def initialize(token)
-      @bot = Discordrb::Bot.new(token: token, ignore_bots: true)
+    def initialize(token: , log_mode: :normal)
+      @bot = Discordrb::Bot.new(token: token, ignore_bots: true, log_mode: log_mode)
 
       @ready_count = 0
       @bot.ready do
         @ready_count += 1
         @bot.update_status(:dnd, "Restarted: #{@ready_count} times", nil) 
       end
-      
+
       @hb_count = 0
       @bot.heartbeat do
         @bot.update_status(:online, "/poll | ex/poll | #{@bot.servers.size} guilds", nil) if @hb_count % 15 == 0
