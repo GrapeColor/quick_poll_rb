@@ -7,7 +7,7 @@ module QuickPoll
     include Base
 
     def self.events(bot)
-      @@server_prefixes ||= Hash.new('/')
+      @@prefixes = Hash.new('/')
       bot.ready do
         bot.servers.each { |_, server| update_prefix(server) }
       end
@@ -26,20 +26,20 @@ module QuickPoll
     end
 
     def self.update_prefix(server)
-      @@server_prefixes[server.id] = server.bot.nick.to_s =~ /^\[(\S{1,8})\]/ ? $1 : '/'
+      @@prefixes[server.id] = server.bot.nick.to_s =~ /^\[(\S{1,8})\]/ ? $1 : '/'
     end
 
     def self.parse(event)
       content = event.content
       server = event.server
-      prefix = @@server_prefixes[server&.id]
+      prefix = @@prefixes[server&.id]
 
       match_prefix = content.match(/^(ex)?#{Regexp.escape(prefix)}/)
       return unless match_prefix
 
       ex = !!match_prefix[1]
+      content.delete_prefix!("#{"ex" if ex}#{prefix}")
       args = parse_content(content)
-      args[0].delete_prefix!("#{"ex" if ex}#{prefix}")
       return unless COMMANDS.include?(args[0])
 
       @@command_count[event.channel.id] += 1
@@ -77,7 +77,7 @@ module QuickPoll
     end
 
     def self.information(event)
-      prefix = @@server_prefixes[event.server&.id]
+      prefix = @@prefixes[event.server&.id]
 
       response = event.send_embed do |embed|
         embed.color = COLOR_HELP
