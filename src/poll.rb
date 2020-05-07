@@ -56,6 +56,7 @@ module QuickPoll
     end
 
     def initialize(event, prefix, ex, args)
+      @ex = ex
       @prefix = prefix
       @author = event.author
       @server = event.server
@@ -64,19 +65,11 @@ module QuickPoll
 
       @response = send_waiter("投票生成中...")
 
-      return unless parse_poll_command(args)
+      return unless parse_command(args)
+
+      return unless check_external_emoji
 
       return if ex && !can_exclusive
-
-      @color = ex ? COLOR_EXPOLL : COLOR_POLL
-      @footer = case @command
-        when :poll, :numpoll
-          "選択肢にリアクションで#{"1人1票だけ" if ex}投票できます"
-        when :freepoll
-          "任意のリアクションで#{"1人1票だけ" if ex}投票できます"
-        else
-          return
-        end
 
       @response.edit("", poll_embed)
       add_reactions
@@ -88,7 +81,7 @@ module QuickPoll
 
     private
 
-    def parse_poll_command(args)
+    def parse_command(args)
       command, @query = args.shift(2)
       @command = command.to_sym
 
@@ -110,16 +103,6 @@ module QuickPoll
         return false
       end
 
-      unless check_external_emoji
-        delete
-        @response = send_error(
-          "外部の絵文字が利用できません",
-          "投票に外部の絵文字を使用したい場合、BOTに **外部の絵文字の使用** 権限が必要です"
-        )
-        return false
-      end
-
-      @image_url = get_with_image
       true
     end
 
@@ -154,7 +137,7 @@ module QuickPoll
       when :freepoll
         return {}
       when :numpoll
-        raise TooFewArguments if args == []
+        raise TooFewArguments if args.empty?
         num = args[0].tr("０-９", "0-9").to_i
         raise TooFewOptions if num < 1
         raise TooManyOptions if num > MAX_OPTIONS
@@ -182,10 +165,30 @@ module QuickPoll
       return DEFAULT_EMOJIS[0...args.size].zip(args).to_h
     end
 
+    def check_external_emoji
+      return true if @channel.private? || @server.bot.permission?(:use_external_emoji, @channel)
+
+      external = @options.keys.find do |emoji|
+        next if emoji !~ /<a?:.+:(\d+)>/
+        !@server.emojis[$1.to_i]
+      end
+
+      if external
+        delete
+        @response = send_error(
+          "外部の絵文字が利用できません",
+          "投票に外部の絵文字を使用したい場合、BOTに **外部の絵文字の使用** 権限が必要です"
+        )
+        return false
+      end
+
+      true
+    end
+
     def poll_embed
       embed = Discordrb::Webhooks::Embed.new
 
-      embed.color = @color
+      embed.color = @ex ? COLOR_EXPOLL : COLOR_POLL
       embed.title = "📊 #{@query}\u200c"
 
       embed.description = @options.map do |emoji, opt|
@@ -197,19 +200,10 @@ module QuickPoll
         icon_url: @author.avatar_url,
         name: @author.respond_to?(:display_name) ? @author.display_name : @author.distinct
       }
-      embed.image = { url: @image_url }
-      embed.footer = { text: @footer }
+      embed.image = { url: get_with_image }
+      embed.footer = { text: footer_text }
 
       embed
-    end
-
-    def check_external_emoji
-      return true if @channel.private? || @server.bot.permission?(:use_external_emoji, @channel)
-
-      !@options.keys.find do |emoji|
-        next if emoji !~ /<a?:.+:(\d+)>/
-        !@server.emojis[$1.to_i]
-      end
     end
 
     def get_with_image
@@ -217,6 +211,15 @@ module QuickPoll
         next if attachment.height.nil?
         attachment.url.end_with?('.png', '.jpg', '.jpeg', '.gif', '.webp')
       end&.url
+    end
+
+    def footer_text
+      case @command
+      when :poll, :numpoll
+        "選択肢にリアクションで#{"1人1票だけ" if @ex}投票できます"
+      when :freepoll
+        "任意のリアクションで#{"1人1票だけ" if @ex}投票できます"
+      end
     end
 
     def add_reactions
