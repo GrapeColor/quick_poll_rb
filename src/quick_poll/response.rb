@@ -37,13 +37,13 @@ module QuickPoll
       match_prefix = content.match(/^(ex)?#{Regexp.escape(prefix)}/)
       return unless match_prefix
 
-      ex = !!match_prefix[1]
-      content.delete_prefix!("#{"ex" if ex}#{prefix}")
+      exclusive = !!match_prefix[1]
+      content.delete_prefix!("#{"ex" if exclusive}#{prefix}")
       args = parse_content(content)
       return unless COMMANDS.include?(args[0])
 
       @@command_count[event.channel.id] += 1
-      self.new(event, prefix, ex, args)
+      self.new(event, prefix, exclusive, args)
 
       nil
     end
@@ -94,10 +94,10 @@ module QuickPoll
       Canceler.new(event.message, response)
     end
 
-    def initialize(event, prefix, ex, args)
+    def initialize(event, prefix, exclusive, args)
       @event = event
       @prefix = prefix
-      @ex = ex
+      @exclusive = exclusive
       @args = args
 
       response = call_responser
@@ -115,7 +115,7 @@ module QuickPoll
       return Help.new(@event, @prefix) if @args.size <= 1
 
       if @args[0] != "sumpoll"
-        Poll.new(@event, @prefix, @ex, @args)
+        Poll.new(@event, @prefix, @exclusive, @args)
       else
         Result.new(@event, @args[1])
       end

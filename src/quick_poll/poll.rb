@@ -24,7 +24,7 @@ module QuickPoll
     def self.events(bot)
       @@last_reactions = Hash.new { |h, k| h[k] = {} } 
 
-      bot.reaction_add { |event| exclusive(event) }
+      bot.reaction_add { |event| exclude_reaction(event) }
 
       bot.reaction_remove do |event|
         message = event.message
@@ -34,7 +34,7 @@ module QuickPoll
       end
     end
 
-    def self.exclusive(event)
+    def self.exclude_reaction(event)
       message = event.message rescue return
       poll_embed = message.embeds[0]
       return unless message.from_bot?
@@ -55,8 +55,8 @@ module QuickPoll
       end
     end
 
-    def initialize(event, prefix, ex, args)
-      @ex = ex
+    def initialize(event, prefix, exclusive, args)
+      @exclusive = exclusive
       @prefix = prefix
       @author = event.author
       @server = event.server
@@ -69,7 +69,7 @@ module QuickPoll
 
       return unless check_external_emoji
 
-      return if ex && !can_exclusive
+      return if exclusive && !can_exclusive
 
       @response.edit("", poll_embed)
       add_reactions
@@ -190,7 +190,7 @@ module QuickPoll
     def poll_embed
       embed = Discordrb::Webhooks::Embed.new
 
-      embed.color = @ex ? COLOR_EXPOLL : COLOR_POLL
+      embed.color = @exclusive ? COLOR_EXPOLL : COLOR_POLL
       embed.title = "📊 #{@query}\u200c"
 
       embed.description = @options.map do |emoji, opt|
@@ -218,9 +218,9 @@ module QuickPoll
     def footer_text
       case @command
       when :poll, :numpoll
-        "選択肢にリアクションで#{"1人1票だけ" if @ex}投票できます"
+        "選択肢にリアクションで#{"1人1票だけ" if @exclusive}投票できます"
       when :freepoll
-        "任意のリアクションで#{"1人1票だけ" if @ex}投票できます"
+        "任意のリアクションで#{"1人1票だけ" if @exclusive}投票できます"
       end
     end
 
