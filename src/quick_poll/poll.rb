@@ -77,8 +77,7 @@ module QuickPoll
     private
 
     def parse_command(args)
-      command, @query = args.shift(2)
-      @command = command.to_sym
+      @command, @query = args.shift(2)
 
       begin
         @options = parse_args(args)
@@ -129,9 +128,9 @@ module QuickPoll
 
     def parse_args(args)
       case @command
-      when :freepoll
+      when "freepoll"
         return {}
-      when :numpoll
+      when "numpoll"
         raise TooFewArguments if args.empty?
 
         num = args[0].tr("０-９", "0-9").to_i
@@ -212,9 +211,9 @@ module QuickPoll
 
     def footer_text
       case @command
-      when :poll, :numpoll
+      when "poll", "numpoll"
         "選択肢にリアクションで#{"1人1票だけ" if @exclusive}投票できます"
-      when :freepoll
+      when "freepoll"
         "任意のリアクションで#{"1人1票だけ" if @exclusive}投票できます"
       end
     end
