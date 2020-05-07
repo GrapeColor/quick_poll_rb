@@ -1,1 +1,1 @@
-bot: ruby src\execution.rb
+bot: ruby src/execution.rb
