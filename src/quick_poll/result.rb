@@ -4,17 +4,16 @@ module QuickPoll
   class Result
     include Base
 
-    def initialize(event, message_id)
+    def initialize(event, message_id, response)
       @bot = event.bot
       @channel = event.channel
       @message = event.message
       @poll = @channel.message(message_id.to_i)
       @poll_embed = @poll.embeds[0] if @poll
-
-      @response = send_waiter("投票集計中...")
+      @response = response
 
       unless @poll&.from_bot? && (COLOR_POLL..COLOR_FREEPOLL).cover?(@poll_embed.color)
-        delete
+        @response.delete
         @response = send_error("指定された投票が見つかりません")
         return
       end
@@ -31,10 +30,6 @@ module QuickPoll
       @response.edit("", embed)
     end
 
-    def delete
-      @response.delete
-    end
-
     private
 
     def parse_poll
@@ -43,7 +38,7 @@ module QuickPoll
       @reactions = @free ? @poll.reactions : @poll.my_reactions
 
       if @reactions == []
-        delete
+        @response.delete
         @response = send_error("まだ何も投票されていません")
         return false
       end

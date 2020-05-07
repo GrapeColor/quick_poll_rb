@@ -100,24 +100,31 @@ module QuickPoll
       @exclusive = exclusive
       @args = args
 
-      response = call_responser
+      call_responser
     rescue ImpossibleSend
       return
     rescue => e
-      trace_error(e)
-    else
-      Canceler.new(event.message, response)
+      @response.delete
+      @response = trace_error(e)
+    ensure
+      Canceler.new(event.message, @response)
     end
 
     private
 
     def call_responser
-      return Help.new(@event, @prefix) if @args.size <= 1
+      if @args.size <= 1
+        @response = send_waiter("ヘルプ表示生成中...")
+        Help.new(@event, @prefix, @response)
+        return
+      end
 
       if @args[0] != "sumpoll"
-        Poll.new(@event, @prefix, @exclusive, @args)
+        @response = send_waiter("投票生成中...")
+        Poll.new(@event, @prefix, @exclusive, @args, @response)
       else
-        Result.new(@event, @args[1])
+        @response = send_waiter("投票集計中...")
+        Result.new(@event, @args[1], @response)
       end
     end
 

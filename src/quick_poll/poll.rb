@@ -55,15 +55,14 @@ module QuickPoll
       end
     end
 
-    def initialize(event, prefix, exclusive, args)
+    def initialize(event, prefix, exclusive, args, response)
       @exclusive = exclusive
       @prefix = prefix
       @author = event.author
       @server = event.server
       @channel = event.channel
       @message = event.message
-
-      @response = send_waiter("投票生成中...")
+      @response = response
 
       return unless parse_command(args)
 
@@ -73,10 +72,6 @@ module QuickPoll
 
       @response.edit("", poll_embed)
       add_reactions
-    end
-
-    def delete
-      @response.delete
     end
 
     private
@@ -98,7 +93,7 @@ module QuickPoll
       end
 
       if args_error
-        delete
+        @response.delete
         @response = send_error(args_error)
         return false
       end
@@ -108,7 +103,7 @@ module QuickPoll
 
     def can_exclusive
       if @channel.private?
-        delete
+        @response.delete
         @response = send_error(
           "DM・グループDM内では 'ex#{@prefix}' プレフィックスが利用できません"
         )
@@ -116,7 +111,7 @@ module QuickPoll
       end
 
       unless @server&.bot.permission?(:manage_messages, @channel)
-        delete
+        @response.delete
         @response = send_error(
           "'ex#{@prefix}' プレフィックスが利用できません",
           "`ex#{@prefix}` プレフィックスコマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
@@ -176,7 +171,7 @@ module QuickPoll
       end
 
       if external
-        delete
+        @response.delete
         @response = send_error(
           "外部の絵文字が利用できません",
           "投票に外部の絵文字を使用したい場合、BOTに **外部の絵文字の使用** 権限が必要です"
@@ -227,7 +222,7 @@ module QuickPoll
     def add_reactions
       @options.keys.each { |emoji| @response.react(emoji =~ /<a?:(.+:\d+)>/ ? $1 : emoji) }
     rescue
-      delete
+      @response.delete
       @response = send_error(
         "投票を作成できません",
         "投票を作成するには、BOTに **メッセージ履歴を読む** と **リアクションの追加** 権限が必要です"

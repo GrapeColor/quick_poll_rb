@@ -4,9 +4,9 @@ module QuickPoll
   class Help
     include Base
 
-    def initialize(event, prefix)
+    def initialize(event, prefix, response)
       @channel = event.channel
-      @response = send_waiter("ヘルプ表示生成中...")
+      @response = response
 
       embed = Discordrb::Webhooks::Embed.new
       embed.color = COLOR_HELP
@@ -42,10 +42,6 @@ module QuickPoll
       DESC
 
       @response.edit("", embed)
-    end
-
-    def delete
-      @response.delete
     end
   end
 end
