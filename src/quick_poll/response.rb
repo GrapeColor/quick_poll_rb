@@ -96,6 +96,7 @@ module QuickPoll
 
     def initialize(event, prefix, exclusive, args)
       @event = event
+      @channel = event.channel
       @prefix = prefix
       @exclusive = exclusive
       @args = args
@@ -129,7 +130,6 @@ module QuickPoll
     end
 
     def trace_error(e)
-      @channel = @event.channel
       @message = @event.message
       @own = @event.server&.bot
 
