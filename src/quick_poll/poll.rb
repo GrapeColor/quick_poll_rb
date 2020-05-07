@@ -138,16 +138,18 @@ module QuickPoll
         return {}
       when :numpoll
         raise TooFewArguments if args.empty?
+
         num = args[0].tr("０-９", "0-9").to_i
         raise TooFewOptions if num < 1
         raise TooManyOptions if num > MAX_OPTIONS
+
         return DEFAULT_EMOJIS[0...num].zip([]).to_h
       end
 
-      raise TooManyOptions if args.size > MAX_OPTIONS * 2
       return { "⭕" => nil, "❌" => nil } if args.empty?
+      raise TooManyOptions if args.size > MAX_OPTIONS * 2
 
-      if args.map(&:emoji?).all?
+      if args.all?(&:emoji?)
         raise TooManyOptions if args.size > MAX_OPTIONS
         raise DuplicateEmojis if args.size > args.uniq.size
         return args.zip([]).to_h
@@ -155,7 +157,7 @@ module QuickPoll
 
       emojis, opts = args.partition.with_index { |_, i| i.even? }
 
-      if args.size.even? && emojis.map(&:emoji?).all?
+      if args.size.even? && emojis.all?(&:emoji?)
         raise TooManyOptions if emojis.size > MAX_OPTIONS
         raise DuplicateEmojis if emojis.size > emojis.uniq.size
         return emojis.zip(opts).to_h
