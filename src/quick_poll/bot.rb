@@ -36,12 +36,18 @@ module QuickPoll
       @ready_count = 0
       @bot.ready do
         @ready_count += 1
-        @bot.update_status(:dnd, "Restarted: #{@ready_count} times", nil) 
+        @bot.mode = :debug if @ready_count > 15
+
+        @bot.update_status(:dnd, "Restarted: #{@ready_count} times", nil)
+        @hb_count = 0
       end
 
-      @hb_count = 0
       @bot.heartbeat do
-        @bot.update_status(:online, "/poll | ex/poll | #{@bot.servers.size} guilds", nil) if @hb_count % 15 == 0
+        if @hb_count.even?
+          @bot.update_status(:online, "/poll | ex/poll", nil)
+        else
+          @bot.update_status(:online, "#{@bot.servers.size} サーバー", nil)
+        end
         @hb_count += 1
       end
 
