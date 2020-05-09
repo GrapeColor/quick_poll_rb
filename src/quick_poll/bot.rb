@@ -36,7 +36,7 @@ module QuickPoll
       @ready_count = 0
       @bot.ready do
         @ready_count += 1
-        @bot.mode = :debug if @ready_count > 15
+        @bot.mode = :debug if @ready_count > 20
 
         @bot.update_status(:dnd, "Restarted: #{@ready_count} times", nil)
         @hb_count = 0

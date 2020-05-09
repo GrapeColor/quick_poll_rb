@@ -22,37 +22,52 @@ module QuickPoll
     ].freeze
 
     def self.events(bot)
-      @@last_reactions = Hash.new { |h, k| h[k] = {} } 
+      @@last_reactions = Hash.new { |h, k| h[k] = {} }
+      @@checked_message = []
 
       bot.reaction_add { |event| exclude_reaction(event) }
 
       bot.reaction_remove do |event|
-        message = event.message
+        message_id = event.instance_variable_get(:@message_id)
         user = event.user
-        reaction = @@last_reactions[message.id][user.id]
-        @@last_reactions[message.id][user.id] = "" if event.emoji.to_reaction == reaction
+        return unless reacted = @@last_reactions[message_id][user.id]
+        @@last_reactions[message_id][user.id] = "" if event.emoji.to_reaction == reacted
       end
     end
 
     def self.exclude_reaction(event)
-      message = event.message rescue return
-      poll_embed = message.embeds[0]
-      return unless message.from_bot?
-      return if poll_embed.color != COLOR_EXPOLL
-  
+      message_id = event.instance_variable_get(:@message_id)
+      return unless is_poll?(event, message_id)
+
       user = event.user
       emoji = event.emoji
-      reacted = @@last_reactions[message.id][user.id]
-      @@last_reactions[message.id][user.id] = emoji.to_reaction
-  
+      reacted = @@last_reactions[message_id][user.id]
+      @@last_reactions[message_id][user.id] = emoji.to_reaction
+
       if reacted
-        message.delete_reaction(user, reacted) rescue nil if reacted != ""
+        Discordrb::API::Channel.delete_user_reaction(
+          event.bot.token, event.channel.id, message_id, reacted, user.id
+        ) rescue nil if reacted != ""
       else
         message.reactions.each do |reaction|
-          next if @@last_reactions[message.id][user.id] == reaction.to_s
+          next if @@last_reactions[message_id][user.id] == reaction.to_s
           message.delete_reaction(user, reaction.to_s) rescue nil
         end
       end
+    end
+
+    def self.is_poll?(event, message_id)
+      return true if @@checked_message.include?(message_id)
+
+      message = event.message
+    rescue
+      return false
+    else
+      poll_embed = message.embeds[0]
+      return false unless message.from_bot? && poll_embed.color == COLOR_EXPOLL
+
+      @@checked_message << message_id
+      true
     end
 
     def initialize(event, prefix, exclusive, args, response)
