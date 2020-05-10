@@ -49,8 +49,9 @@ module QuickPoll
           event.bot.token, event.channel.id, message_id, reacted, user.id
         ) rescue nil if reacted != ""
       else
+        message = event.message
         message.reactions.each do |reaction|
-          next if @@last_reactions[message_id][user.id] == reaction.to_s
+          next if @@last_reactions[message.id][user.id] == reaction.to_s
           message.delete_reaction(user, reaction.to_s) rescue nil
         end
       end
