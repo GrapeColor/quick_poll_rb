@@ -12,6 +12,11 @@ Install gems.
 ```
 bundle install
 ```
+Setting environment variables.  
+```
+QUICK_POLL_TOKEN: Your Discord bot token
+ADMIN_USER_ID: The administrator user Snowflake
+```
 Execute.
 ```
 ruby ./src/execution.rb
