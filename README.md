@@ -1,5 +1,5 @@
 # Quick Poll
-A simple poll bot for Discord.  
+A simple poll bot for Discord, based on Japanese.  
 
 ## Use gems
 * [dotenv](https://github.com/bkeepers/dotenv)
@@ -16,3 +16,7 @@ Execute.
 ```
 ruby ./src/execution.rb
 ```
+
+## Manual
+Japanese manual for users who use BOT.  
+https://github.com/GrapeColor/quick_poll/wiki/%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95
