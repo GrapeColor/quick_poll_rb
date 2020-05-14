@@ -30,8 +30,10 @@ module QuickPoll
   COLOR_ERROR    = 0xffcc4d
 
   class Bot
-    def initialize(token: , log_mode: :normal)
-      @bot = Discordrb::Bot.new(token: token, ignore_bots: true, log_mode: log_mode)
+    def initialize(token: , shard_id: nil, num_shards: nil, log_mode: :normal)
+      @bot = Discordrb::Bot.new(
+        token: token, ignore_bots: true, shard_id: shard_id, num_shards: num_shards, log_mode: log_mode
+      )
 
       @ready_count = 0
       @bot.ready do

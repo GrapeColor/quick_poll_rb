@@ -221,8 +221,8 @@ module QuickPoll
     def get_with_image
       @message.attachments.find do |attachment|
         next if attachment.height.nil?
-        attachment.url.end_with?('.png', '.jpg', '.jpeg', '.gif', '.webp')
-      end&.url
+        attachment.filename.end_with?('.png', '.jpg', '.jpeg', '.gif', '.webp')
+      end&.proxy_url
     end
 
     def footer_text
