@@ -42,21 +42,21 @@ module QuickPoll
 
         @bot.update_status(:dnd, "Restarted: #{@ready_count} times", nil)
         @hb_count = 0
-      end
+      end if @bot.shard_key[0] == 0
 
       @bot.heartbeat do
         if @hb_count.even?
           @bot.update_status(:online, "/poll | ex/poll", nil)
         else
-          @bot.update_status(:online, "#{@bot.servers.size} サーバー", nil)
+          @bot.update_status(:online, "#{@bot.servers.size} サーバー / #{@bot.shard_key[1]} shards", nil)
         end
         @hb_count += 1
-      end
+      end if @bot.shard_key[0] == 0
 
       Response.events(@bot)
       Canceler.events(@bot)
       Poll.events(@bot)
-      Admin.events(@bot)
+      Admin.events(@bot) if @bot.shard_key[0] == 0
     end
 
     def run(background = false)
