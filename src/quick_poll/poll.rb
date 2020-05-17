@@ -61,10 +61,10 @@ module QuickPoll
       return true if @@checked_message.include?(message_id)
 
       message = event.message
+      poll_embed = message.embeds[0]
     rescue
       return false
     else
-      poll_embed = message.embeds[0]
       return false unless message.from_bot? && poll_embed.color == COLOR_EXPOLL
 
       @@checked_message << message_id
