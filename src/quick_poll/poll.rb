@@ -62,6 +62,8 @@ module QuickPoll
 
       message = event.message
       poll_embed = message.embeds[0]
+
+      return if poll_embed.nil?
     rescue
       return false
     else

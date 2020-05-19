@@ -13,7 +13,7 @@ module QuickPoll
           $2.split("\n\n").each { |code| eval("pp(#{code})") }
           log = $stdout.string
         rescue => e
-          log = e
+          log = "#{e.inspect}\n#{e.backtrace.join("\n")}"
         end
 
         $stdout = STDOUT

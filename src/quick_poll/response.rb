@@ -6,6 +6,8 @@ module QuickPoll
   class Response
     include Base
 
+    MAX_COMMAND_LENGTH = 1200
+
     def self.events(bot)
       @@prefixes = Hash.new('/')
       bot.ready do
@@ -26,7 +28,7 @@ module QuickPoll
     end
 
     def self.update_prefix(server)
-      @@prefixes[server.id] = server.bot.nick.to_s =~ /^\[(\S{1,8})\]/ ? $1 : '/'
+      @@prefixes[server.id] = server.bot.nick.to_s =~ /\[(\S{1,8})\]/ ? $1 : '/'
     end
 
     def self.parse(event)
@@ -101,6 +103,13 @@ module QuickPoll
       @exclusive = exclusive
       @args = args
 
+      if event.content.size > MAX_COMMAND_LENGTH
+        @response = send_error(
+          "コマンドが長すぎます", "コマンドの長さは最大1200文字までです"
+        )
+        return
+      end
+
       call_responser
     rescue ImpossibleSend
       return
@@ -154,7 +163,7 @@ module QuickPoll
 
       send_error(
         "予期しない原因でコマンドの実行に失敗しました",
-        "開発者にエラー情報を送信しました"
+        "開発チームにエラー情報を送信しました"
       )
     end
 
