@@ -29,7 +29,7 @@ module QuickPoll
 
       bot.reaction_remove do |event|
         message_id = event.instance_variable_get(:@message_id)
-        user = event.user
+        next unless user = event.user
         next unless reacted = @@last_reactions[message_id][user.id]
         @@last_reactions[message_id][user.id] = "" if event.emoji.to_reaction == reacted
       end
