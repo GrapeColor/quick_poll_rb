@@ -40,7 +40,7 @@ module QuickPoll
         @ready_count += 1
         @bot.mode = :debug if @ready_count > 20
 
-        @bot.update_status(:dnd, "Restarted: #{@ready_count} times", nil)
+        @bot.update_status(:dnd, "再接続されました (#{@ready_count})", nil)
         @hb_count = 0
       end if @bot.shard_key[0] == 0
 
