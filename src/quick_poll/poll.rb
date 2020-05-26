@@ -13,6 +13,7 @@ module QuickPoll
   class Poll
     include Base
 
+    MAX_COMMAND_LENGTH = 1200
     MAX_OPTIONS = 20
     DEFAULT_EMOJIS = [
       "🇦", "🇧", "🇨", "🇩", "🇪",
@@ -73,14 +74,23 @@ module QuickPoll
       true
     end
 
-    def initialize(event, prefix, exclusive, args, response)
+    def initialize(event, prefix, exclusive, args)
       @exclusive = exclusive
       @prefix = prefix
       @author = event.author
       @server = event.server
       @channel = event.channel
       @message = event.message
-      @response = response
+
+      @response = send_waiter("投票生成中...")
+
+      if event.content.size > MAX_COMMAND_LENGTH
+        @response.delete
+        @response = send_error(
+          "コマンドが長すぎます", "コマンドの長さは最大1200文字までです"
+        )
+        return
+      end
 
       return unless parse_command(args)
 
@@ -91,6 +101,8 @@ module QuickPoll
       @response.edit("", poll_embed)
       add_reactions
     end
+
+    attr_reader :response
 
     private
 

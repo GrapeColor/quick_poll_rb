@@ -12,7 +12,7 @@ require_relative './help'
 require_relative './admin'
 
 module QuickPoll
-  SUPPORT_URL = "https://discord.gg/STzZ6GK"
+  SUPPORT_URL = ENV['SUPPORT_URL']
 
   PERMISSION_BITS = 355392
   NEED_PERMISSIONS = Discordrb::Permissions::FLAGS.select do |bit, _|

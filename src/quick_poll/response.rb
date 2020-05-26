@@ -6,8 +6,6 @@ module QuickPoll
   class Response
     include Base
 
-    MAX_COMMAND_LENGTH = 1200
-
     def self.events(bot)
       @@prefixes = Hash.new('/')
       bot.ready do
@@ -15,7 +13,7 @@ module QuickPoll
       end
 
       bot.member_update do |event|
-        update_prefix(event.server) if event.user.current_bot?
+        update_prefix(event.server) if event.member.current_bot?
       end
 
       @@command_count = Hash.new(0)
@@ -23,12 +21,17 @@ module QuickPoll
 
       bot.mention do |event|
         next if event.content !~ /^<@!?#{bot.profile.id}>$/
-        information(event)
+
+        self.new(event, @@prefixes[event.server&.id], false, [])
+        nil
       end
     end
 
     def self.update_prefix(server)
-      @@prefixes[server.id] = server.bot.nick.to_s =~ /\[(\S{1,8})\]/ ? $1 : '/'
+      matches = server.bot.nick.to_s.scan(/\[(\S{1,8})\]/)
+      choice = matches.find { |match| match[0] !~ /poll/ }
+      prefix = choice ? choice[0] : '/'
+      @@prefixes[server.id] = prefix
     end
 
     def self.parse(event)
@@ -103,38 +106,25 @@ module QuickPoll
       @exclusive = exclusive
       @args = args
 
-      if event.content.size > MAX_COMMAND_LENGTH
-        @response = send_error(
-          "コマンドが長すぎます", "コマンドの長さは最大1200文字までです"
-        )
-        return
-      end
-
-      call_responser
+      @response = call_responser
+      Canceler.new(event.message, @response)
     rescue ImpossibleSend
       return
     rescue => e
-      @response.delete
+      @response.delete rescue nil
       @response = trace_error(e)
-    ensure
       Canceler.new(event.message, @response)
     end
 
     private
 
     def call_responser
-      if @args.size <= 1
-        @response = send_waiter("ヘルプ表示生成中...")
-        Help.new(@event, @prefix, @response)
-        return
-      end
+      return Help.new(@event, @prefix).response if @args.size <= 1
 
-      if @args[0] != "sumpoll"
-        @response = send_waiter("投票生成中...")
-        Poll.new(@event, @prefix, @exclusive, @args, @response)
+      if @args[0] == "sumpoll"
+        Result.new(@event, @args[1]).response
       else
-        @response = send_waiter("投票集計中...")
-        Result.new(@event, @args[1], @response)
+        Poll.new(@event, @prefix, @exclusive, @args).response
       end
     end
 

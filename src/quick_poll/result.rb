@@ -4,13 +4,14 @@ module QuickPoll
   class Result
     include Base
 
-    def initialize(event, message_id, response)
+    def initialize(event, message_id)
       @bot = event.bot
       @channel = event.channel
       @message = event.message
       @poll = @channel.message(message_id.to_i)
       @poll_embed = @poll.embeds[0] if @poll
-      @response = response
+
+      @response = send_waiter("投票集計中...")
 
       unless @poll&.from_bot? && (COLOR_POLL..COLOR_FREEPOLL).cover?(@poll_embed.color)
         @response.delete
@@ -29,6 +30,8 @@ module QuickPoll
 
       @response.edit("", embed)
     end
+
+    attr_reader :response
 
     private
 

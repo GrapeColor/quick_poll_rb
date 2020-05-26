@@ -4,7 +4,10 @@ module QuickPoll
   class Help
     include Base
 
-    def initialize(event, prefix, response)
+    def initialize(event, prefix)
+      @channel = event.channel
+      @response = send_waiter("ヘルプ表示生成中...")
+
       embed = Discordrb::Webhooks::Embed.new
       embed.color = COLOR_HELP
       embed.title = "📊 Quick Pollの使い方"
@@ -40,7 +43,9 @@ module QuickPoll
         ➡️ **[サーバーへ追加](#{event.bot.invite_url(permission_bits: PERMISSION_BITS)})**
       DESC
 
-      response.edit("", embed)
+      @response.edit("", embed)
     end
+
+    attr_reader :response
   end
 end
