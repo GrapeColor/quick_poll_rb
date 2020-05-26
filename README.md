@@ -16,6 +16,7 @@ Setting environment variables.
 ```
 QUICK_POLL_TOKEN: Your Discord bot token
 ADMIN_USER_ID: The administrator user Snowflake
+SUPPORT_URL: Your support server
 ```
 Execute.
 ```
