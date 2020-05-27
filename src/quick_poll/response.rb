@@ -28,10 +28,8 @@ module QuickPoll
     end
 
     def self.update_prefix(server)
-      matches = server.bot.nick.to_s.scan(/\[(\S{1,8})\]/)
-      choice = matches.find { |match| match[0] !~ /poll/ }
-      prefix = choice ? choice[0] : '/'
-      @@prefixes[server.id] = prefix
+      match = server.bot.nick.to_s.match(/\[([!-~]{1,4}?)\]/)
+      @@prefixes[server.id] = match ? match[1] : '/'
     end
 
     def self.parse(event)
