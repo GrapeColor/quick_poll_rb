@@ -3,14 +3,6 @@
 require 'bundler/setup'
 require 'discordrb'
 
-require_relative './canceler'
-require_relative './base'
-require_relative './response'
-require_relative './poll'
-require_relative './result'
-require_relative './help'
-require_relative './admin'
-
 module QuickPoll
   SUPPORT_URL = ENV['SUPPORT_URL']
 
@@ -40,7 +32,7 @@ module QuickPoll
         @ready_count += 1
         @bot.mode = :debug if @ready_count > 20
 
-        @bot.update_status(:dnd, "再接続されました (#{@ready_count})", nil)
+        @bot.update_status(:dnd, "再接続しました (#{@ready_count})", nil)
         @hb_count = 0
       end if @bot.shard_key[0] == 0
 
@@ -64,3 +56,11 @@ module QuickPoll
     end
   end
 end
+
+require_relative './canceler'
+require_relative './base'
+require_relative './response'
+require_relative './poll'
+require_relative './result'
+require_relative './help'
+require_relative './admin'
