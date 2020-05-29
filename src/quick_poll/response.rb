@@ -41,7 +41,7 @@ module QuickPoll
       return unless match_prefix
 
       exclusive = !!match_prefix[1]
-      content.delete_prefix!("#{"ex" if exclusive}#{prefix}")
+      content = content.delete_prefix("#{"ex" if exclusive}#{prefix}")
       args = parse_content(content)
       return unless COMMANDS.include?(args[0])
 
