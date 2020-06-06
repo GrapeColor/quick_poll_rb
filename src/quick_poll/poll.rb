@@ -38,7 +38,7 @@ module QuickPoll
 
     def self.exclude_reaction(event)
       message_id = event.instance_variable_get(:@message_id)
-      return unless is_poll?(event, message_id)
+      return unless is_expoll?(event, message_id)
 
       user = event.user
       emoji = event.emoji
@@ -58,7 +58,7 @@ module QuickPoll
       end
     end
 
-    def self.is_poll?(event, message_id)
+    def self.is_expoll?(event, message_id)
       return true if @@checked_message.include?(message_id)
 
       message = event.message
@@ -220,7 +220,7 @@ module QuickPoll
       embed.description = @options.map do |emoji, opt|
         "\u200B#{emoji} #{opt}\u200C" if opt
       end.compact.join("\n")
-      embed.description += "\n\n投票結果は `#{@prefix}sumpoll #{@response.id}` で集計"
+      embed.description += "\n\n投票数の集計: `#{@prefix}sumpoll #{@response.id}`"
 
       embed.author = {
         icon_url: @author.avatar_url,
