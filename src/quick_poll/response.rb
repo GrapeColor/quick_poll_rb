@@ -91,7 +91,7 @@ module QuickPoll
           チュートリアル表示コマンド: `#{prefix}poll`
           導入サーバー数: `#{event.bot.servers.size}`
 
-          [更新情報・質問・不具合報告](#{SUPPORT_URL})
+          [更新情報・ご質問・不具合報告](#{SUPPORT_URL})
         DESC
       end
 

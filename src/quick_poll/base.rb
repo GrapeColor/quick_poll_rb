@@ -17,7 +17,7 @@ module QuickPoll
       @channel.send_embed do |embed|
         embed.color = COLOR_ERROR
         embed.title = "⚠️ #{title}"
-        embed.description = description + "\n[質問・不具合報告](#{SUPPORT_URL})"
+        embed.description = description + "\n[ご質問・不具合報告](#{SUPPORT_URL})"
       end
     end
   end

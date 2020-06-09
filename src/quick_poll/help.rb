@@ -39,7 +39,7 @@ module QuickPoll
         ```
         ↩️ でコマンド実行をキャンセル(60秒以内)
 
-        🈂️ [更新情報・質問・不具合報告](#{SUPPORT_URL})　\
+        🈂️ [更新情報・ご質問・不具合報告](#{SUPPORT_URL})　\
         ➡️ **[サーバーへ追加](#{event.bot.invite_url(permission_bits: PERMISSION_BITS)})**
       DESC
 
