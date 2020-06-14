@@ -80,24 +80,6 @@ module QuickPoll
       args.reject(&:empty?)
     end
 
-    def self.information(event)
-      prefix = @@prefixes[event.server&.id]
-
-      response = event.send_embed do |embed|
-        embed.color = COLOR_HELP
-        embed.title = "📊 Quick Poll情報"
-        embed.description = <<~DESC
-          コマンドプレフィックス: `#{prefix}`
-          チュートリアル表示コマンド: `#{prefix}poll`
-          導入サーバー数: `#{event.bot.servers.size}`
-
-          [更新情報・ご質問・不具合報告](#{SUPPORT_URL})
-        DESC
-      end
-
-      Canceler.new(event.message, response)
-    end
-
     def initialize(event, prefix, exclusive, args)
       @event = event
       @channel = event.channel
