@@ -7,7 +7,16 @@ module QuickPoll
     def initialize(event, message_id)
       receive_args(event, message_id)
 
-      @response = send_waiter("投票結果CSV出力中...")
+      @response = send_waiter("投票結果CSVファイル出力中...")
+
+      unless can_send_file
+        @response.delete
+        @response = send_error(
+          "CSVファイルが送信できません",
+          "BOTに **ファイルを添付** 権限が必要です"
+        )
+        return
+      end
 
       return unless is_poll? && parse_poll
 
@@ -23,6 +32,10 @@ module QuickPoll
     end
 
     private
+
+    def can_send_file
+      @channel.private? || @channel.server.bot.permission?(:attach_files, @channel)
+    end
 
     def generate_csv
       find_options = @options.values.all?
