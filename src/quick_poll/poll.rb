@@ -24,7 +24,7 @@ module QuickPoll
 
     def self.events(bot)
       @@last_reactions = Hash.new { |h, k| h[k] = {} }
-      @@checked_message = []
+      @@cached_messages = {}
 
       bot.reaction_add { |event| exclude_reaction(event) }
 
@@ -37,20 +37,29 @@ module QuickPoll
     end
 
     def self.exclude_reaction(event)
-      message_id = event.instance_variable_get(:@message_id)
-      return unless is_expoll?(event, message_id)
-
       user = event.user
+      return if user.current_bot? || event.channel.private?
+
+      message = cache_message(event)
+      poll_embed = message&.embeds[0]
+
+      return unless poll_embed && message.from_bot? && (COLOR_POLL..COLOR_EXPOLL) === poll_embed.color
+
+      reactions = message.my_reactions
+      unless reactions == [] || reactions.find { |reaction| reaction.to_s == event.emoji.to_reaction }
+        message.delete_reaction(user, event.emoji) rescue nil
+        return
+      end
+
+      return if poll_embed.color != COLOR_EXPOLL
+
       emoji = event.emoji
-      reacted = @@last_reactions[message_id][user.id]
-      @@last_reactions[message_id][user.id] = emoji.to_reaction
+      reacted = @@last_reactions[message.id][user.id]
+      @@last_reactions[message.id][user.id] = emoji.to_reaction
 
       if reacted
-        Discordrb::API::Channel.delete_user_reaction(
-          event.bot.token, event.channel.id, message_id, reacted, user.id
-        ) rescue nil if reacted != ""
+        message.delete_reaction(user, reacted) rescue nil if reacted != ""
       else
-        message = event.message
         message.reactions.each do |reaction|
           next if @@last_reactions[message.id][user.id] == reaction.to_s
           message.delete_reaction(user, reaction.to_s) rescue nil
@@ -58,20 +67,11 @@ module QuickPoll
       end
     end
 
-    def self.is_expoll?(event, message_id)
-      return true if @@checked_message.include?(message_id)
-
-      message = event.message
-      poll_embed = message.embeds[0]
-
-      return if poll_embed.nil?
+    def self.cache_message(event)
+      message_id = event.instance_variable_get(:@message_id)
+      @@cached_messages[message_id] ||= event.message
     rescue
-      return false
-    else
-      return false unless message.from_bot? && poll_embed.color == COLOR_EXPOLL
-
-      @@checked_message << message_id
-      true
+      nil
     end
 
     def initialize(event, prefix, exclusive, args)
