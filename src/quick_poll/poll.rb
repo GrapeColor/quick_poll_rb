@@ -82,9 +82,9 @@ module QuickPoll
       @channel = event.channel
       @message = event.message
 
-      return if exclusive && !can_exclusive
-
       @response = send_waiter("投票生成中...")
+
+      return if exclusive && !can_exclusive
 
       if event.content.size > MAX_COMMAND_LENGTH
         @response.delete
@@ -132,6 +132,7 @@ module QuickPoll
 
     def can_exclusive
       if @channel.private?
+        @response.delete
         @response = send_error(
           "DM・グループDM内では 'ex#{@prefix}' プレフィックスが利用できません"
         )
@@ -139,6 +140,7 @@ module QuickPoll
       end
 
       unless @server&.bot.permission?(:manage_messages, @channel)
+        @response.delete
         @response = send_error(
           "'ex#{@prefix}' プレフィックスが利用できません",
           "`ex#{@prefix}` プレフィックスコマンドの実行にはBOTに **メッセージの管理** 権限が必要です"
@@ -216,7 +218,7 @@ module QuickPoll
       embed.title = "📊 #{@query}\u200c"
 
       embed.description = @options.map do |emoji, opt|
-        "\u200B#{emoji} #{opt}\u200C" if opt
+        "#{emoji} #{opt}\u200C" if opt
       end.compact.join("\n")
       embed.description += "\n\n投票数の集計: `#{@prefix}sumpoll #{@response.id}`"
 

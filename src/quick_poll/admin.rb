@@ -7,6 +7,8 @@ module QuickPoll
         next if event.author != ENV['ADMIN_USER_ID']
         next if event.content !~ /^<@!?#{bot.profile.id}>\s+admin\R?```(ruby)?\R?(.+)\R?```/m
 
+        bot = event.bot
+
         $stdout = StringIO.new
 
         begin

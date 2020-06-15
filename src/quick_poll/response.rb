@@ -46,7 +46,7 @@ module QuickPoll
       return unless COMMANDS.include?(args[0])
 
       @@command_count[event.channel.id] += 1
-      self.new(event, prefix, exclusive, args)
+      new(event, prefix, exclusive, args)
 
       nil
     end
@@ -87,7 +87,7 @@ module QuickPoll
       @exclusive = exclusive
       @args = args
 
-      @response = call_responser
+      @response = call_responser.response
       Canceler.new(event.message, @response)
     rescue ImpossibleSend
       return
@@ -100,12 +100,15 @@ module QuickPoll
     private
 
     def call_responser
-      return Help.new(@event, @prefix).response if @args.size <= 1
+      return Help.new(@event, @prefix) if @args.size <= 1
 
-      if @args[0] == "sumpoll"
-        Result.new(@event, @args[1]).response
+      case @args[0]
+      when "sumpoll"
+        Result.new(@event, @args[1])
+      when "csvpoll"
+        Export.new(@event, @args[1])
       else
-        Poll.new(@event, @prefix, @exclusive, @args).response
+        Poll.new(@event, @prefix, @exclusive, @args)
       end
     end
 
