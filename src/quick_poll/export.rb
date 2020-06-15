@@ -20,8 +20,6 @@ module QuickPoll
 
       @response.delete
       @response = @channel.send_file(@io)
-    rescue
-      @response = send_error("CSVファイルの生成に失敗しました")
     end
 
     private
