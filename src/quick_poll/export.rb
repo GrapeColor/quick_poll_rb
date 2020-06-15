@@ -49,11 +49,14 @@ module QuickPoll
         @io.print("#{@counts[i]},")
 
         @io.print('"')
-        @poll.reacted_with(reaction.to_s).each do |user|
+
+        users = @poll.reacted_with(reaction.to_s)
+        users.each do |user|
           next if user.current_bot?
           @io.print("#{user.distinct}, ")
         end
-        @io.seek(-2, IO::SEEK_CUR)
+        @io.seek(-2, IO::SEEK_CUR) if @counts[i] > 0
+
         @io.print("\"\n")
       end
 
