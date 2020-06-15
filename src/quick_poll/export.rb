@@ -41,12 +41,15 @@ module QuickPoll
       find_options = @options.values.all?
 
       @io.print("\xEF\xBB\xBF")
-      @io.print("Emoji,Options,Votes,Members\n")
+      @io.print("Emojis,Options,Votes,Rates,Members\n")
 
       @reactions.map.with_index do |reaction, i|
+        count = @counts[i] 
+
         @io.print("#{reaction.name},")
         @io.print("\"#{@options[emoji_mention(reaction)]}\",")
-        @io.print("#{@counts[i]},")
+        @io.print("#{count},")
+        @io.printf("%.5f%%,", (100.0 * count / @total).round(5))
 
         @io.print('"')
 
@@ -55,7 +58,7 @@ module QuickPoll
           next if user.current_bot?
           @io.print("#{user.distinct}, ")
         end
-        @io.seek(-2, IO::SEEK_CUR) if @counts[i] > 0
+        @io.seek(-2, IO::SEEK_CUR) if count > 0
 
         @io.print("\"\n")
       end
