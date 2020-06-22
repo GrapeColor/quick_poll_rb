@@ -34,7 +34,7 @@ module QuickPoll
     end
 
     def is_poll?
-      unless @poll&.from_bot? && (COLOR_POLL..COLOR_EXPOLL) === @poll_embed.color
+      unless @poll&.from_bot? && (COLOR_POLL..COLOR_EXPOLL) === @poll_embed&.color
         @response.delete
         @response = send_error("指定された投票が見つかりません")
         return false
