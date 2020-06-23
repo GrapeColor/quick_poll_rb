@@ -1,4 +1,4 @@
 .env
 .logs/
 foo.rb
-icon.png
+icon*

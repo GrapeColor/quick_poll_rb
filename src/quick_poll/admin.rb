@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'objspace'
+
 module QuickPoll
   module Admin
     def self.events(bot)
@@ -8,6 +10,7 @@ module QuickPoll
         next if event.content !~ /^<@!?#{bot.profile.id}>\s+admin\R?```(ruby)?\R?(.+)\R?```/m
 
         bot = event.bot
+        memory_size = ObjectSpace.memsize_of_all * 0.001 * 0.001
 
         $stdout = StringIO.new
 
