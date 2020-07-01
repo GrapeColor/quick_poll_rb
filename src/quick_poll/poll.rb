@@ -2,24 +2,24 @@
 
 require 'unicode/emoji'
 
-class String
-  def emoji?
-    return true if self =~ /^<:.+:\d+>$/
-    !!(self =~ /^#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}$/)
-  end
-end
-
 module QuickPoll
+  using Module.new {
+    refine String do
+      def emoji?
+        return true if self =~ /^<:.+:\d+>$/
+        !!(self =~ /^#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}$/)
+      end
+    end
+  }
+
   class Poll
     include Base
 
     MAX_COMMAND_LENGTH = 1200
     MAX_OPTIONS = 20
     DEFAULT_EMOJIS = [
-      "🇦", "🇧", "🇨", "🇩", "🇪",
-      "🇫", "🇬", "🇭", "🇮", "🇯",
-      "🇰", "🇱", "🇲", "🇳", "🇴",
-      "🇵", "🇶", "🇷", "🇸", "🇹",
+      "🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯",
+      "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹",
     ].freeze
 
     def self.events(bot)
