@@ -57,7 +57,7 @@ module QuickPoll
       escape = false
 
       content.chars.each do |char|
-        if !escape && (quote == "" || quote == char) && (char == '"' || char == "'" || char == '”' || char == '„')
+        if !escape && (quote == "" || quote == char) && char =~ /["'”„]/
           args << arg
           arg = ""
           quote = quote == "" ? char : ""
@@ -67,7 +67,7 @@ module QuickPoll
 
         next if escape = char == "\\" && !escape
 
-        if char == " " && quote == "" || char == "\n"
+        if char == "\n" || char =~ /\s/ && quote == ""
           args << arg 
           arg = quote = ""
           next
