@@ -5,6 +5,7 @@ require 'discordrb'
 
 module QuickPoll
   SUPPORT_URL = ENV['SUPPORT_URL']
+  DONATION_URL = 'https://ofuse.me/users/grapecolor'
 
   PERMISSION_BITS = 388160
   NEED_PERMISSIONS = Discordrb::Permissions::FLAGS.select do |bit, _|
@@ -13,12 +14,12 @@ module QuickPoll
 
   COMMANDS = %w(poll freepoll numpoll sumpoll csvpoll).freeze
 
-  COLOR_HELP     = 0xff922f
-  COLOR_WAIT     = 0x9867c6
-  COLOR_POLL     = 0x3b88c3
-  COLOR_EXPOLL   = 0x3b88c4
-  COLOR_RESULT   = 0xdd2e44
-  COLOR_ERROR    = 0xffcc4d
+  COLOR_HELP   = 0xff922f
+  COLOR_WAIT   = 0x9867c6
+  COLOR_POLL   = 0x3b88c3
+  COLOR_EXPOLL = 0x3b88c4
+  COLOR_RESULT = 0xdd2e44
+  COLOR_ERROR  = 0xffcc4d
 
   class Bot
     def initialize(token: , shard_id: nil, num_shards: nil, log_mode: :normal)
