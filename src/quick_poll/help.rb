@@ -11,7 +11,7 @@ module QuickPoll
       embed = Discordrb::Webhooks::Embed.new
       embed.color = COLOR_HELP
       embed.title = "📊 Quick Pollの使い方"
-      embed.url = "https://github.com/GrapeColor/quick_poll/wiki/使用方法"
+      embed.url = HELP_URL
 
       embed.fields = [
         {

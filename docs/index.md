@@ -13,6 +13,7 @@ Discord用の高機能アンケートBOTです。
 https://discord.com/oauth2/authorize?&client_id=631159438337900575&permissions=388160&scope=bot  
 
 ## 各コマンド解説
+BOTに対してメンションを送るか、各コマンドに何もパラメータを指定しなかった場合、簡単なチュートリアルが表示されます。  
 各コマンドを利用するときは必ず`/`か`ex/`で始め、各パラメータは**半角スペース**か**改行**で区切って入力してください。  
 各パラメータに半角スペースを含めたいときは、パラメータ全体を`""`で囲ってください。  
 なお、`/`は別の記号に変更することも可能です。([コマンドプレフィックスの変更](#コマンドプレフィックスの変更))  
@@ -22,7 +23,7 @@ https://discord.com/oauth2/authorize?&client_id=631159438337900575&permissions=3
 
 ### /poll
 アンケートを作成します。  
-選択肢は**最大20個**までで、絵文字と選択肢は対になるように入力してください。 
+選択肢は**最大20個**までで、絵文字と選択肢は対になるように入力してください。  
 絵文字を省略した場合、
 <img src="https://github.com/twitter/twemoji/blob/master/assets/72x72/1f1e6.png" width="16"> 
 <img src="https://github.com/twitter/twemoji/blob/master/assets/72x72/1f1e7.png" width="16"> 
@@ -105,7 +106,7 @@ https://discord.com/oauth2/authorize?&client_id=631159438337900575&permissions=3
 BOTのニックネームの中に`[]`で囲んで、半角英数記号4文字まで指定できます。  
 - 例
 ```
-[#]Quick Poll
+[#] Quick Poll
 Quick Poll [>>]
 アンケートBOT [vote]
 ```
