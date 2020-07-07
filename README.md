@@ -25,4 +25,4 @@ ruby ./src/execution.rb
 
 ## Manual
 Japanese manual for users who use BOT.  
-https://gist.github.com/GrapeColor/2c2539bb02a7b6033a21af3befe8c1d2
+https://github.com/GrapeColor/quick_poll/blob/master/docs/index.md
