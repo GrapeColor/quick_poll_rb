@@ -5,9 +5,8 @@ require 'unicode/emoji'
 module QuickPoll
   using Module.new {
     refine String do
-      def emoji?
-        return true if self =~ /^<:.+:\d+>$/
-        !!(self =~ /^#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}$/)
+      def is_emoji?
+        match?(/^<a?:.+:\d+>$/) || match?(/^#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}$/)
       end
     end
   }
@@ -173,7 +172,7 @@ module QuickPoll
       return { "⭕" => nil, "❌" => nil } if args.empty?
       raise TooManyOptions if args.size > MAX_OPTIONS * 2
 
-      if args.all?(&:emoji?)
+      if args.all?(&:is_emoji?)
         raise TooManyOptions if args.size > MAX_OPTIONS
         raise DuplicateEmojis if args.size > args.uniq.size
         return args.zip([]).to_h
@@ -181,7 +180,7 @@ module QuickPoll
 
       emojis, opts = args.partition.with_index { |_, i| i.even? }
 
-      if args.size.even? && emojis.all?(&:emoji?)
+      if args.size.even? && emojis.all?(&:is_emoji?)
         raise TooManyOptions if emojis.size > MAX_OPTIONS
         raise DuplicateEmojis if emojis.size > emojis.uniq.size
         return emojis.zip(opts).to_h

@@ -17,31 +17,31 @@ module QuickPoll
         {
           name: "🇦 🇧 🇨 🇩 …で選択できる投票を作る",
           value: <<~VALUE
-            ```yaml
-            \u200C#{prefix}poll 好きな果物は？ りんご ぶどう みかん キウイ
+            ```fix
+            #{prefix}poll 好きな果物は？ りんご ぶどう みかん キウイ
             ```
           VALUE
         },
         {
           name: "任意の絵文字で選択できる投票を作る",
           value: <<~VALUE
-            ```yaml
-            \u200C#{prefix}poll 好きな果物は？ 🍎 りんご 🍇 ぶどう 🍊 みかん 🥝 キウイ
+            ```fix
+            #{prefix}poll 好きな果物は？ 🍎 りんご 🍇 ぶどう 🍊 みかん 🥝 キウイ
             ```
           VALUE
         },
         {
           name: "⭕ ❌ の二択で選択できる投票を作る",
           value: <<~VALUE
-            ```yaml
-            \u200C#{prefix}poll メロンは果物である
+            ```fix
+            #{prefix}poll メロンは果物である
             ```
           VALUE
         },
         {
           name: "ひとり一票だけの投票を作る",
           value: <<~VALUE
-            ```yaml
+            ```fix
             ex#{prefix}poll "Party Parrotは何て動物？" インコ フクロウ カカポ オウム
             ```
           VALUE
@@ -49,11 +49,11 @@ module QuickPoll
         {
           name: "🌟 Tips",
           value: <<~VALUE
-            ```diff
-            - 投票の選択肢は最大20個まで
-            - 文・絵文字の区切りは半角スペースか、改行
-            - 文中に半角スペースを含めたい場合、"" で文を囲む
-            - コマンドに画像を添付すると、画像付きの投票を作成
+            ```
+            ● 投票の選択肢は最大20個まで
+            ● 文・絵文字の区切りは半角スペースか改行
+            ● 半角スペースを含めたい場合 "" で文を囲む
+            ● 画像を添付すると画像付きの投票を作成
             ```
           VALUE
         },
