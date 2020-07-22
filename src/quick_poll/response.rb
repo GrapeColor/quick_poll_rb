@@ -22,7 +22,7 @@ module QuickPoll
       bot.mention do |event|
         next if event.content !~ /^<@!?#{bot.profile.id}>$/
 
-        self.new(event, @@prefixes[event.server&.id], false, [])
+        new(event, @@prefixes[event.server&.id], false, [])
         nil
       end
     end
@@ -56,19 +56,23 @@ module QuickPoll
       arg = quote = ""
       escape = false
 
-      content.chars.each do |char|
-        if !escape && (quote == "" || quote == char) && char =~ /["'”„]/
-          args << arg
+      content.strip.chars.each do |char|
+        if !escape && (quote == "" || quote == char) && char.match?(/["'”„]/)
+          if quote == char
+            args << arg
+            quote = ""
+          else
+            args << arg if arg != ""
+            quote = char == '„' ? '”' : char
+          end
           arg = ""
-          quote = quote == "" ? char : ""
-          quote = '”' if quote == '„'
           next
         end
 
         next if escape = char == "\\" && !escape
 
-        if char == "\n" || char =~ /\s/ && quote == ""
-          args << arg 
+        if char == "\n" || char.match?(/\s/) && quote == ""
+          args << arg if arg != ""
           arg = quote = ""
           next
         end
@@ -76,8 +80,7 @@ module QuickPoll
         arg += char
       end
 
-      args << arg
-      args.reject(&:empty?)
+      arg == "" ? args : args << arg
     end
 
     def initialize(event, prefix, exclusive, args)
