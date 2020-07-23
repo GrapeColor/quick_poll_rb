@@ -214,12 +214,12 @@ module QuickPoll
       embed = Discordrb::Webhooks::Embed.new
 
       embed.color = @exclusive ? COLOR_EXPOLL : COLOR_POLL
-      embed.title = "📊 #{@query}\u200c" if @query != ""
+      embed.title = "#{@query}\u200c" if @query != ""
 
       embed.description = @options.map do |emoji, opt|
         "#{emoji} #{opt}\u200C" if opt
       end.compact.join("\n")
-      embed.description += "\n\n投票数の集計: `#{@prefix}sumpoll #{@response.id}`"
+      embed.description += "\n\n📊 `#{@prefix}sumpoll #{@response.id}`"
 
       embed.author = {
         icon_url: @author.avatar_url,
