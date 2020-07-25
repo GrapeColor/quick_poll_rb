@@ -71,7 +71,7 @@ module QuickPoll
 
         next if escape = char == "\\" && !escape
 
-        if char == "\n" || char.match?(/\s/) && quote == ""
+        if char == "\n" || char.match?(/[\s　]/) && quote == ""
           args << arg if arg != ""
           arg = quote = ""
           next
