@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://bootswatch.com/4/darkly/bootstrap.css" media="screen" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Sawarabi+Gothic" />
+  <link rel="shortcut icon" href="./images/icon.png">
+
+  <style>
+    * {
+      font-family: "Sawarabi Gothic";
+    }
+  </style>
+
+  <title>Quick Poll</title>
+</head>
+<body style="padding-top: 120px;">
+  <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <img src="./images/icon.png" width="48">　Quick Poll
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#command">コマンド</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#other">その他</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#support">サポート</a>
+          </li>
+        </ul>
+
+        <div class="form-inline">
+          <a class="btn btn-info" href="https://discord.com/oauth2/authorize?&client_id=631159438337900575&permissions=388160&scope=bot" target="_blank">サーバーへ導入</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="d-none d-sm-block alert alert-dismissible alert-danger">
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+      <h4 class="alert-heading">ご寄付のお願い</h4>
+      <div class="container-fluid">
+        <div class="row">
+          <p class="col-9 col-lg-10 mb-0">
+            おかげさまで、Quick Pollは大変多くのサーバーにご利用いただいています。<br />
+            当ボットは無料ですべての機能が利用になれますが、ボットの運用に利用しているサーバーのレンタル費用のご寄付を募っております。<br />
+            今後も長く運用を続けていくためにも、ご協力よろしくお願いします。
+          </p>
+          <div class="col-3 col-lg-2 text-right">
+            <a class="btn btn-warning btn-lg text-decoration-none" href="https://ofuse.me/users/grapecolor" target="_blank">寄付</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h1>Quick Poll</h1>
+    <p class="lead mt-2">
+      Discord用の高機能アンケートBOTです。<br />
+      簡単なコマンド操作で様々なアンケートを作成でき、票数の集計、データ出力まで行えます。
+    </p>
+
+    <h2 class="mt-5" id="command">コマンド</h2>
+    <p>
+      BOTに対してメンションを送るか、コマンドのすべてのパラメータを省略すると、簡単なチュートリアルが表示されます。<br />
+      各コマンドを利用するときは必ず<code class="bg-dark mx-1 my-0 p-1 rounded">/</code>か<code class="bg-dark mx-1 my-0 p-1 rounded">ex/</code>で始め、
+      各パラメータは<strong>半角・全角スペース</strong>か<strong>改行</strong>で区切って入力してください。<br />
+      各パラメータに半角スペースを含めたいときは、パラメータ全体を<code class="bg-dark mx-1 my-0 p-1 rounded">&quot;&quot;</code>で囲ってください。<br />
+      なお、<code class="bg-dark mx-1 my-0 p-1 rounded">/</code>は別の記号に変更することも可能です。(<a href="#change-prefix">コマンドプレフィックスの変更</a>)
+    </p>
+    <h3 class="mt-4">コマンド一覧</h3>
+    <p>
+      <code class="bg-dark mx-1 my-0 p-1 rounded">ex/</code>が付くコマンドは、メンバーが投票する数を1票に制限できます。<br />
+      また、アンケートを作成する際に画像を添付すると、その画像を埋め込んだアンケートを作成できます。
+    </p>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th scope="col">コマンド</th>
+          <th scope="col">文法</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row"><a href="#cmd-poll">/poll・ex/poll</a></th>
+          <td><code class="bg-dark m-0 p-1 rounded">[ex]/poll &lt;質問文&gt; [[&lt;絵文字&gt;] [&lt;選択肢&gt;]]...</code></td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="#cmd-numpoll">/numpoll・ex/numpoll</a></th>
+          <td><code class="bg-dark m-0 p-1 rounded">[ex]/numpoll &lt;質問文&gt; &lt;選択肢数&gt;</code></td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="#cmd-freepoll">/freepoll・ex/freepoll</a></th>
+          <td><code class="bg-dark m-0 p-1 rounded">[ex]/freepoll &lt;質問文&gt;</code></td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="#cmd-sumpoll">/sumpoll</a></th>
+          <td><code class="bg-dark m-0 p-1 rounded">/sumpoll &lt;メッセージID&gt;</code></td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="#cmd-csvpoll">/csvpoll <span class="badge badge-pill badge-danger">ベータ機能</span></a></th>
+          <td><code class="bg-dark m-0 p-1 rounded">/csvpoll &lt;メッセージID&gt;</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="mt-4">各コマンド解説</h3>
+    <h4 class="mt-3" id="cmd-poll"><a href="#cmd-poll">/poll・ex/poll</a></h4>
+    <p>
+      アンケートを作成します。<br />
+      選択肢は<strong>最大20個</strong>までで、絵文字と選択肢は対になるように入力してください。<br />
+      絵文字を省略した場合、
+      <img src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f1e6.png" width="20">
+      <img src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f1e7.png" width="20">
+      <img src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f1e8.png" width="20"> ...
+      の絵文字が代わりに使用されます。<br />
+      選択肢を省略した場合、質問文と指定された絵文字のリアクションのみが表示されます。<br />
+      どちらも省略し質問文のみを指定した場合、
+      <img src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/2b55.png" width="20">
+      <img src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/274c.png" width="20">
+      の二択からなるアンケートが作成されます。<br />
+      また、コマンド文と共に画像ファイルを添付すると、その画像をアンケートに埋め込みます。
+    </p>
+
+    <h5>文法</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>[ex]/poll &lt;質問文&gt; [[&lt;絵文字&gt;] [&lt;選択肢&gt;]]...</code>
+    </div>
+
+    <h5>入力例</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>
+        /poll スイカは果物である<br />
+        /poll カロリーメイト何味が好き？ チーズ フルーツ チョコレート メープル プレーン<br />
+        /poll 好きな果物は？ 🍎 りんご 🍇 ぶどう 🍊 みかん 🥝 キウイ<br />
+        /poll 今の気持ちを選んで！ 😄 😊 😢 😠<br />
+        ex/poll 東北地方ではない県を選べ 岩手 青森 山梨 秋田 福島
+      </code>
+    </div>
+
+    <h4 class="mt-3" id="cmd-numpoll"><a href="#cmd-numpoll">/numpoll・ex/numpoll</a></h4>
+    <p>
+      指定した数ぶんの選択肢が付いたアンケートを作成します。<br />
+      質問文と選択肢の数を算用数字で指定してください。
+    </p>
+
+    <h5>文法</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>[ex]/numpoll &lt;質問文&gt; &lt;選択肢数&gt;</code>
+    </div>
+
+    <h5>入力例</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>
+        /numpoll チームを選択してください 8<br />
+        ex/numpoll どのランクに入っていますか？ 5
+      </code>
+    </div>
+
+    <h4 class="mt-3" id="cmd-freepoll"><a href="#cmd-freepoll">/freepoll・ex/freepoll</a></h4>
+    <p>
+      質問文のみのアンケートを作成します。<br />
+      質問文のみ指定してください。
+    </p>
+
+    <h5>文法</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>[ex]/freepoll &lt;質問文&gt;</code>
+    </div>
+
+    <h5>入力例</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>
+        /freepoll 好きな絵文字を教えて！<br />
+        ex/freepoll カスタム絵文字はどれが好き？
+      </code>
+    </div>
+
+    <h4 class="mt-3" id="cmd-sumpoll"><a href="#cmd-sumpoll">/sumpoll</a></h4>
+    <p>
+      アンケートの集計を行います。<br />
+      同じチャンネル内のアンケートのみ集計できます。<br />
+      アンケート作成時に表示されたコマンド文をそのまま送信するか、メッセージID(数字)を指定してください。
+    </p>
+
+    <h5>文法</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/sumpoll &lt;メッセージID&gt;</code>
+    </div>
+
+    <h5>入力例</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/sumpoll 729730719039094916</code>
+    </div>
+
+    <h4 class="d-inline-block mt-3" id="cmd-csvpoll"><a href="#cmd-csvpoll">/csvpoll</a></h4>
+    <div class="d-inline-block badge badge-pill badge-danger">ベータ機能</div>
+    <p>
+      アンケートを集計し、CSVデータを出力します。<br />
+      同じチャンネル内のアンケートのみ集計できます。<br />
+      各選択肢の票数と割合、投票したユーザーの名前を最大100名まで取得します。<br />
+      文字コードはUTF-8(BOM付き)です。<br />
+      アンケートのメッセージID(数字)を指定してください。
+    </p>
+
+    <h5>文法</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/csvpoll &lt;メッセージID&gt;</code>
+    </div>
+
+    <h5>入力例</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/csvpoll 729002614787801099</code>
+    </div>
+
+    <h2 class="mt-5" id="other">その他</h2>
+    <h3 class="mt-4" id="change-prefix">コマンドプレフィックスの変更</h3>
+    <p>
+      他のBOTの競合を避けるため、コマンドプレフィックスの<code class="bg-dark mx-1 my-0 p-1 rounded">/</code>を任意の記号に変更することができます。<br />
+      BOTのニックネームの中に<code class="bg-dark mx-1 my-0 p-1 rounded">[]</code>で囲んで、<strong>半角英数記号4文字まで</strong>指定できます。
+    </p>
+
+    <h5>入力例</h5>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>
+        [#] Quick Poll<br />
+        Quick Poll [>>]<br /> 
+        アンケートBOT [vote]
+      </code>
+    </div>
+
+    <h3 class="mt-4">詳しい文法</h3>
+    <p>
+      Quick Pollでは、半角・全角スペースや改行といった空白文字を文字列の区切りとして認識します。<br />
+      そのため、以下のようなコマンド文も正しく認識されます。
+    </p>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/poll<br />好きな果物は？<br />🍎 りんご<br />🍇 ぶどう<br />🍊 みかん<br />🥝 キウイ</code>
+    </div>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/poll<br />好きな果物は？<br />🍎 りんご<br />🍇&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ぶどう<br />🍊<br />みかん　🥝　　キウイ</code>
+    </div>
+
+    <p>また、<code class="bg-dark mx-1 my-0 p-1 rounded">&quot;&quot;</code>などの引用符で囲われた文字は、空白文字を含んでいても1つの文字列として認識します。</p>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/poll &quot;日　本　一　の　山　は　？&quot; &quot;妙　高　山&quot; &quot;富　士　山&quot; &quot;男　体　山&quot; &quot;白　根　山&quot;</code>
+    </div>
+    <p>しかし、改行だけは含めることができず、改行した時点で引用符を閉じた場合と同じ挙動となります。</p>
+    <div class="bg-dark mb-4 p-3 rounded">
+      <code>/poll<br />&quot;日　本　一　の　山　は　？<br />&quot;妙　高　山<br />&quot;富　士　山<br />&quot;男　体　山<br />&quot;白　根　山</code>
+    </div>
+
+    <p>
+      なお、引用符は<code class="bg-dark mx-1 my-0 p-1 rounded">&quot;&quot;</code>の他にも、
+      <code class="bg-dark mx-1 my-0 p-1 rounded">''</code><code class="bg-dark mx-1 my-0 p-1 rounded">””</code><code class="bg-dark mx-1 my-0 p-1 rounded">„”</code>
+      などが利用できます。
+    </p>
+
+    <h2 class="mt-5" id="support">サポート</h2>
+    <p>
+      Quick Pollについてのご質問やご要望等は、Discordのサポートサーバーにて承っております。<br />
+      なお、ご質問の内容はGrapeColorが開発するBOTについてのことに限らせて頂きます。
+    </p>
+    <a class="btn btn-success" href="https://discord.gg/STzZ6GK" target="_blank">サポートサーバーに参加</a>
+  </div>
+
+  <footer class="footer mt-5 py-4 bg-info">
+    <p class="m-0 text-center">&copy; 2019 GrapeColor</p>
+  </footer>
+
+  <script src="https://bootswatch.com/_vendor/jquery/dist/jquery.min.js"></script>
+  <script src="https://bootswatch.com/_vendor/popper.js/dist/umd/popper.min.js"></script>
+  <script src="https://bootswatch.com/_vendor/bootstrap/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
