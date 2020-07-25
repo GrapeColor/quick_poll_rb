@@ -219,7 +219,7 @@ module QuickPoll
       embed.description = @options.map do |emoji, opt|
         "#{emoji} #{opt}\u200C" if opt
       end.compact.join("\n")
-      embed.description += "\n\n📊 `#{@prefix}sumpoll #{@response.id}`"
+      embed.description += "\n\n[📊](#{HELP_URL + "sumpoll"}) `#{@prefix}sumpoll #{@response.id}`"
 
       embed.author = {
         icon_url: @author.avatar_url,
