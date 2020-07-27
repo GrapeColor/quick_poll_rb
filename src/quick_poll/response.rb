@@ -51,19 +51,21 @@ module QuickPoll
       nil
     end
 
+    REPLACE_TABLE = { '“' => '”', '„' => '”', "‘" => "’", "‚" => "’" }.freeze
+
     def self.parse_content(content)
       args = []
       arg = quote = ""
       escape = false
 
       content.strip.chars.each do |char|
-        if !escape && (quote == "" || quote == char) && char.match?(/["'”„]/)
+        if !escape && (quote == "" && char.match?(/["'”“„‘‚]/) || quote == char)
           if quote == char
             args << arg
             quote = ""
           else
             args << arg if arg != ""
-            quote = char == '„' ? '”' : char
+            quote = char.sub(/[“„‘‚]/, REPLACE_TABLE)
           end
           arg = ""
           next
