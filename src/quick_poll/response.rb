@@ -51,33 +51,32 @@ module QuickPoll
       nil
     end
 
-    REPLACE_TABLE = { '“' => '”', '„' => '”', "‘" => "’", "‚" => "’" }.freeze
+    PAIR_QUOTES = { '“' => '”', '„' => '”', "‘" => "’", "‚" => "’" }.freeze
 
-    def self.parse_content(content)
-      args = []
+    def self.parse_content(content, args = [])
       arg = quote = ""
       escape = false
 
-      content.strip.chars.each do |char|
+      content.chars.each do |char|
         if !escape && (quote == "" && char.match?(/["'”“„‘‚]/) || quote == char)
           if quote == char
             args << arg
             quote = ""
           else
             args << arg if arg != ""
-            quote = char.sub(/[“„‘‚]/, REPLACE_TABLE)
+            quote = char.sub(/[“„‘‚]/, PAIR_QUOTES)
           end
           arg = ""
           next
         end
 
-        next if escape = char == "\\" && !escape
-
-        if char == "\n" || char.match?(/[\s　]/) && quote == ""
+        if char.match?(/[\s　]/) && quote == "" && !escape
           args << arg if arg != ""
           arg = quote = ""
           next
         end
+
+        next if escape = char == "\\" && !escape
 
         arg += char
       end

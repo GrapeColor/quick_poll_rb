@@ -45,7 +45,7 @@ module QuickPoll
 
     def parse_poll
       @free = @poll.my_reactions == []
-      @options = @poll_embed.description.scan(/^(.+?) (.+?)\u200C$/).to_h
+      @options = @poll_embed.description.scan(/\u200B(.+?) (.+?)\u200C/m).to_h
       @reactions = @free ? @poll.reactions : @poll.my_reactions
 
       if @reactions == []

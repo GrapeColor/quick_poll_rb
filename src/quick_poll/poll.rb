@@ -214,10 +214,10 @@ module QuickPoll
       embed = Discordrb::Webhooks::Embed.new
 
       embed.color = @exclusive ? COLOR_EXPOLL : COLOR_POLL
-      embed.title = "#{@query}\u200c" if @query != ""
+      embed.title = "#{@query}\u200C" if @query != ""
 
       embed.description = @options.map do |emoji, opt|
-        "#{emoji} #{opt}\u200C" if opt
+        "\u200B#{emoji} #{opt}\u200C" if opt
       end.compact.join("\n")
       embed.description += "\n\n[📊](#{HELP_URL + "sumpoll"}) `#{@prefix}sumpoll #{@response.id}`"
 
