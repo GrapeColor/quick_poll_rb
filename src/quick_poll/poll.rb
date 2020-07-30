@@ -6,7 +6,7 @@ module QuickPoll
   using Module.new {
     refine String do
       def is_emoji?
-        match?(/^<a?:.+:\d+>$/) || match?(/^#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}$/)
+        match?(/^<a?:.+:\d+>$/) || match?(/^(#{Unicode::Emoji::REGEX_WELL_FORMED_INCLUDE_TEXT}|[🇦-🇿])$/)
       end
     end
   }
