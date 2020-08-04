@@ -4,7 +4,7 @@ require 'bundler/setup'
 require 'discordrb'
 
 module QuickPoll
-  HELP_URL = 'https://grapecolor.github.io/quick_poll/'
+  HELP_URL = 'https://grapecolor.github.io/quick_poll_rb/'
   SUPPORT_URL = ENV['SUPPORT_URL']
   DONATION_URL = 'https://ofuse.me/users/grapecolor'
 
