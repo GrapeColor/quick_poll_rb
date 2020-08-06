@@ -15,11 +15,9 @@ module QuickPoll
     include Base
 
     MAX_COMMAND_LENGTH = 1200
-    MAX_OPTIONS = 20
-    DEFAULT_EMOJIS = [
-      "🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯",
-      "🇰", "🇱", "🇲", "🇳", "🇴", "🇵", "🇶", "🇷", "🇸", "🇹",
-    ].freeze
+    DEFAULT_EMOJIS = ("🇦".."🇹").to_a.freeze
+    NUMBER_EMOJIS = ("1️⃣".."9️⃣").to_a.push("🔟").freeze
+    MAX_OPTIONS = DEFAULT_EMOJIS.size
 
     def self.events(bot)
       @@last_reactions = Hash.new { |h, k| h[k] = {} }
@@ -115,7 +113,9 @@ module QuickPoll
       rescue TooFewOptions
         args_error = "選択肢が1個を下回っています"
       rescue TooManyOptions
-        args_error = "選択肢が20個を超えています"
+        args_error = "選択肢が#{MAX_OPTIONS}個を超えています"
+      rescue TooManyNumber
+        args_error = "選択肢が#{NUMBER_EMOJIS.size}個を超えています"
       rescue DuplicateEmojis
         args_error = "絵文字が重複しています"
       end
@@ -153,6 +153,7 @@ module QuickPoll
     class TooFewArguments < StandardError; end
     class TooFewOptions < StandardError; end
     class TooManyOptions < StandardError; end
+    class TooManyNumber < StandardError; end
     class DuplicateEmojis < StandardError; end
 
     def parse_args(args)
@@ -164,9 +165,9 @@ module QuickPoll
 
         num = args[0].tr("０-９", "0-9").to_i
         raise TooFewOptions if num < 1
-        raise TooManyOptions if num > MAX_OPTIONS
+        raise TooManyNumber if num > NUMBER_EMOJIS.size
 
-        return DEFAULT_EMOJIS[0...num].zip([]).to_h
+        return NUMBER_EMOJIS[0...num].zip([]).to_h
       end
 
       return { "⭕" => nil, "❌" => nil } if args.empty?
