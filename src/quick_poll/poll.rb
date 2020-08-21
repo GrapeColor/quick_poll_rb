@@ -93,6 +93,8 @@ module QuickPoll
 
       return unless parse_command(args)
 
+      return unless check_varidation
+
       return unless check_external_emoji
 
       @response.edit("", poll_embed)
@@ -189,6 +191,20 @@ module QuickPoll
 
       raise TooManyOptions if args.size > MAX_OPTIONS
       return DEFAULT_EMOJIS[0...args.size].zip(args).to_h
+    end
+
+    def check_varidation
+      if @query.size > 256
+        @response.delete
+        @response = send_error(
+          "質問文が長すぎます",
+          "質問文は256文字以下にしてください"
+        )
+
+        return false
+      end
+
+      true
     end
 
     def check_external_emoji
