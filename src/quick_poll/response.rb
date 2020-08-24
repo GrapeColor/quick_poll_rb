@@ -64,7 +64,7 @@ module QuickPoll
             quote = ""
           else
             args << arg if arg != ""
-            quote = char.sub(/[“„‘‚]/, PAIR_QUOTES)
+            quote = PAIR_QUOTES[char] || char
           end
           arg = ""
           next
