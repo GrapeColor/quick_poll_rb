@@ -75,7 +75,7 @@ module QuickPoll
     end
 
     def emoji_mention(reaction)
-      reaction.id ? @bot.emoji(reaction.id).mention : reaction.name
+      reaction.id && @bot.emoji(reaction.id).mention || reaction.name
     end
 
     def opt_value(count)
