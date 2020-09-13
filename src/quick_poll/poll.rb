@@ -194,11 +194,11 @@ module QuickPoll
     end
 
     def check_varidation
-      if @query.size > 256
+      if @query.size > 240
         @response.delete
         @response = send_error(
           "質問文が長すぎます",
-          "質問文は256文字以下にしてください"
+          "質問文は240文字以下にしてください"
         )
 
         return false
