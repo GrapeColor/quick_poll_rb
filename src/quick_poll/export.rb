@@ -56,9 +56,9 @@ module QuickPoll
         users = @poll.reacted_with(reaction.to_s)
         users.each do |user|
           next if user.current_bot?
-          @io.print("#{user.distinct}, ")
+          @io.print("#{user.distinct},")
         end
-        @io.seek(-2, IO::SEEK_CUR) if count > 0
+        @io.seek(-1, IO::SEEK_CUR) if count > 0
 
         @io.print("\"\n")
       end
