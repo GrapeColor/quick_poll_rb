@@ -49,7 +49,7 @@ module QuickPoll
         @io.print("#{reaction.name},")
         @io.print("\"#{@options[emoji_mention(reaction)]}\",")
         @io.print("#{count},")
-        @io.print("#{100.0 * count / @total}%")
+        @io.print("#{100.0 * count / @total}%,")
 
         @io.print('"')
 
