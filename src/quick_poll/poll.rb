@@ -37,7 +37,8 @@ module QuickPoll
       user = event.user
       return if user.current_bot? || event.channel.private?
 
-      message = cache_message(event)
+      # message = cache_message(event)
+      message = event.message
       poll_embed = message&.embeds&.first
 
       return unless poll_embed && message.from_bot? && (COLOR_POLL..COLOR_EXPOLL) === poll_embed.color
